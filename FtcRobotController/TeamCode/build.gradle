@@ -26,6 +26,9 @@ android {
 dependencies {
     implementation project(':FtcRobotController')
     
-    // FTC Dashboard for live tuning (required for Novad tuners)
+    // FTC Dashboard for live tuning (required for Novad)
     implementation 'com.acmerobotics.dashboard:dashboard:0.4.16'
+    
+    // Note: GoBilda Pinpoint driver is included in novad/adapters/
+    // No additional dependencies needed for Pinpoint support
 }

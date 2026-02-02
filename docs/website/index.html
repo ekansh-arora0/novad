@@ -1,479 +1,315 @@
-<!DOCTYPE html><!DOCTYPE html><!DOCTYPE html>
-
+<!DOCTYPE html>
 <html lang="en">
-
-<head><html lang="en"><html lang="en">
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"><head><head>
-
-    <title>Novad - FTC Defense Library</title>
-
-    <meta name="description" content="Stop getting pushed around. Defense library for FTC robots.">    <meta charset="UTF-8">    <meta charset="UTF-8">
-
-    
-
-    <!-- Fonts -->    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>    <title>Novad - FTC Defense Library</title>    <title>Novad - FTC Defense Library</title>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-        <meta name="description" content="Stop getting pushed around. Defense library for FTC robots.">    <meta name="description" content="Stop getting pushed around. Add push resistance to your FTC robot with a single line of code.">
-
-    <!-- React CDN -->
-
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>        <link rel="preconnect" href="https://fonts.googleapis.com">
-
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>    <!-- React CDN -->    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    
-
-    <!-- Prism for code highlighting -->    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>    <link rel="stylesheet" href="css/styles.css">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
-
-        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
-
-    <!-- Styles -->
-
-    <link rel="stylesheet" href="styles.css">    </head>
-
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
-
-</head>    <!-- Prism for code highlighting --><body>
-
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novad - FTC Defense Library</title>
+<style>
+:root{--crimson:#8B0000;--gold:#FFD700;--bg:#0d0d0d;--card:#1a1a1a;--txt:#f5f5f5;--muted:#999}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);line-height:1.7}
+a{color:var(--gold)}
+nav{background:linear-gradient(135deg,#5C0000,var(--crimson));padding:1rem 2rem;position:sticky;top:0;z-index:1000;border-bottom:3px solid var(--gold)}
+.nav-container{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:1.8rem;font-weight:bold;color:var(--gold);text-decoration:none}
+.nav-links{display:flex;gap:2rem;align-items:center}
+.nav-links a{color:var(--txt);text-decoration:none}
+.nav-links a:hover{color:var(--gold)}
+.github-btn{background:var(--gold);color:#000;padding:0.5rem 1rem;border-radius:6px;font-weight:bold;text-decoration:none}
+.hero{background:linear-gradient(rgba(92,0,0,0.9),rgba(13,13,13,0.95));padding:5rem 2rem;text-align:center;border-bottom:3px solid var(--gold)}
+.hero h1{font-size:3.5rem;margin-bottom:0.5rem;color:var(--gold)}
+.hero .subtitle{font-size:1.3rem;color:var(--muted);margin-bottom:1.5rem}
+.hero .tagline{font-size:1.1rem;max-width:600px;margin:0 auto 2rem;color:var(--txt)}
+.btn{display:inline-block;background:linear-gradient(135deg,var(--gold),#B8860B);color:#000;padding:0.8rem 2rem;border-radius:50px;text-decoration:none;font-weight:bold;margin:0.5rem}
+section{max-width:900px;margin:0 auto;padding:3rem 2rem}
+h2{font-size:2rem;margin-bottom:1rem;color:var(--gold);border-bottom:2px solid var(--crimson);padding-bottom:0.5rem}
+h3{font-size:1.3rem;margin:1.5rem 0 0.5rem;color:var(--txt)}
+h4{color:var(--gold);margin:1rem 0 0.5rem}
+p{margin-bottom:1rem;color:var(--muted)}
+ul,ol{margin:1rem 0 1rem 2rem;color:var(--muted)}
+li{margin:0.5rem 0}
+pre{background:var(--card);border:1px solid #333;border-radius:8px;padding:1rem;overflow-x:auto;margin:1rem 0;font-size:0.9rem}
+code{font-family:'Consolas','Monaco',monospace;color:var(--txt)}
+.ic{background:var(--card);padding:0.15rem 0.4rem;border-radius:4px;color:var(--gold);font-family:'Consolas',monospace}
+.box{background:var(--card);border-left:4px solid var(--crimson);padding:1rem 1.5rem;margin:1rem 0;border-radius:0 8px 8px 0}
+.box.warn{border-color:var(--gold);background:rgba(255,215,0,0.1)}
+.box h4{margin-top:0}
+table{width:100%;border-collapse:collapse;margin:1rem 0}
+th,td{padding:0.6rem;text-align:left;border-bottom:1px solid #333}
+th{background:var(--crimson);color:var(--gold)}
+.method{background:var(--card);border:1px solid #333;border-radius:8px;padding:1rem;margin:1rem 0}
+.method-sig{font-family:'Consolas',monospace;color:var(--gold);font-size:1rem;margin-bottom:0.5rem}
+.method-desc{color:var(--muted);font-size:0.95rem}
+.divider{text-align:center;padding:1.5rem 0;color:#333;font-size:1.5rem}
+footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--muted);border-top:3px solid var(--gold)}
+.kw{color:#569cd6}.str{color:#ce9178}.num{color:#b5cea8}.cmt{color:#6a9955}
+@media(max-width:768px){.hero h1{font-size:2.5rem}.nav-links{gap:1rem}}
+</style>
+</head>
 <body>
 
-    <div id="root"></div>    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />    <!-- Navigation -->
+<nav>
+<div class="nav-container">
+<a href="#" class="logo">NOVAD</a>
+<div class="nav-links">
+<a href="#quickstart">Quick Start</a>
+<a href="#api">API</a>
+<a href="#tuning">Tuning</a>
+<a href="https://github.com/ekansh-arora0/novad" class="github-btn">GitHub</a>
+</div>
+</div>
+</nav>
 
-    
+<section class="hero">
+<h1>NOVAD</h1>
+<p class="subtitle">FTC Defense Library</p>
+<p class="tagline">Stop getting pushed around. Two methods. That's it.</p>
+<a href="#quickstart" class="btn">Get Started</a>
+<a href="https://github.com/ekansh-arora0/novad" class="btn">View on GitHub</a>
+</section>
 
-    <!-- Load React App -->    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>    <nav class="navbar">
+<section id="quickstart">
+<h2>Quick Start</h2>
 
-    <script type="text/babel" src="app.jsx"></script>
+<h3>1. Copy Files to Your Project</h3>
+<p>Copy <span class="ic">NovadSetup.java</span> and the <span class="ic">novad/</span> folder into your TeamCode:</p>
+<pre><code>TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
+├── NovadSetup.java     <span class="cmt">// Your config - edit this!</span>
+├── YourTeleOp.java     <span class="cmt">// Your existing TeleOp</span>
+└── novad/              <span class="cmt">// The library (don't edit)</span>
+    ├── Novad.java
+    ├── Pose2d.java
+    └── ...</code></pre>
 
-</body>    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>        <div class="nav-container">
+<h3>2. Configure NovadSetup.java</h3>
+<p>Set your motor names and choose your odometry:</p>
+<pre><code><span class="cmt">// Motor names - must match your robot config exactly</span>
+<span class="kw">public static</span> String FRONT_LEFT  = <span class="str">"frontLeft"</span>;
+<span class="kw">public static</span> String FRONT_RIGHT = <span class="str">"frontRight"</span>;
+...
 
-</html>
+<span class="cmt">// Choose ONE odometry system</span>
+<span class="kw">public static boolean</span> USE_PINPOINT = <span class="kw">true</span>;   <span class="cmt">// GoBilda Pinpoint</span>
+<span class="kw">public static boolean</span> USE_THREE_WHEEL = <span class="kw">false</span>; <span class="cmt">// Dead wheels</span></code></pre>
 
-                <a href="/" class="nav-logo">
+<h3>3. Use in Your TeleOp</h3>
+<pre><code><span class="cmt">// In init()</span>
+Novad novad = Novad.create(hardwareMap);
 
-    <!-- Styles -->                <span class="logo-icon">🛡️</span>
+<span class="cmt">// In loop() - this replaces your drivetrain.drive() call</span>
+novad.defense(
+    gamepad1.left_stick_x,     <span class="cmt">// strafe</span>
+    -gamepad1.left_stick_y,    <span class="cmt">// forward (negate!)</span>
+    gamepad1.right_stick_x     <span class="cmt">// rotate</span>
+);
 
-    <link rel="stylesheet" href="styles.css">                <span class="logo-text">Novad</span>
+<span class="cmt">// Optional: bind lockdown to a button</span>
+<span class="kw">if</span> (gamepad1.a) novad.lockdown();
+<span class="kw">if</span> (gamepad1.b) novad.unlock();</code></pre>
 
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">            </a>
+<div class="box">
+<h4>That's it!</h4>
+<p>Deploy and test. Your robot now resists being pushed while you drive normally.</p>
+</div>
+</section>
 
-</head>            <div class="nav-links">
+<div class="divider">• • •</div>
 
-<body>                <a href="#features">Features</a>
+<section id="api">
+<h2>API Reference</h2>
 
-    <div id="root"></div>                <a href="docs/quickstart.html">Quickstart</a>
+<h3>Core Methods</h3>
 
-                    <a href="docs/tuning.html">Tuning</a>
+<div class="method">
+<div class="method-sig">novad.defense(double strafe, double forward, double rotate)</div>
+<div class="method-desc">
+<p><strong>The main method - call this every loop iteration.</strong></p>
+<p>This drives your robot while actively resisting external pushes. It works by comparing what the driver commanded vs what actually happened (via odometry). If the robot moved differently than commanded, that's an external force - Novad adds counter-force.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>strafe</code> - Left stick X. Range -1 to 1. Positive = right.</li>
+<li><code>forward</code> - Left stick Y. Range -1 to 1. Positive = forward. <strong>Remember to negate gamepad Y!</strong></li>
+<li><code>rotate</code> - Right stick X. Range -1 to 1. Positive = turn right.</li>
+</ul>
+<p><strong>What it resists:</strong></p>
+<ul>
+<li>Being pushed sideways ✓</li>
+<li>Being pushed forward/backward ✓</li>
+<li>Being spun/rotated ✓ (heading is protected too!)</li>
+</ul>
+</div>
+</div>
 
-    <script type="text/babel" src="app.jsx"></script>                <a href="docs/api.html">API</a>
+<div class="method">
+<div class="method-sig">novad.lockdown()</div>
+<div class="method-desc">
+<p><strong>Makes the robot completely immovable.</strong></p>
+<p>Call this when you want to plant and block. The robot will hold its exact position (X, Y, AND heading) with maximum force. Driver input is ignored while locked.</p>
+<p><strong>Use case:</strong> You're in a good defensive position and want to become an immovable wall. Press a button to activate, and the robot locks in place.</p>
+<p><strong>Note:</strong> Only use when stationary. Calling this while moving will lock at wherever you are at that moment.</p>
+</div>
+</div>
 
-</body>                <a href="https://github.com/novad/novad" class="nav-github" target="_blank">
+<div class="method">
+<div class="method-sig">novad.unlock()</div>
+<div class="method-desc">
+<p><strong>Exits lockdown mode, returns to normal defense.</strong></p>
+<p>Call this to release the lock and resume driving with defense active.</p>
+</div>
+</div>
 
-</html>                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+<h3>Helper Methods</h3>
 
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
-                </a>
-            </div>
-            <button class="nav-toggle" aria-label="Toggle menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        </div>
-    </nav>
+<div class="method">
+<div class="method-sig">boolean novad.isLocked()</div>
+<div class="method-desc">
+Returns <code>true</code> if currently in lockdown mode. Useful for telemetry or conditional logic.
+</div>
+</div>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-content">
-            <div class="hero-badge">FTC Defense Library v1.0</div>
-            <h1 class="hero-title">Stop Getting<br><span class="gradient-text">Pushed Around</span></h1>
-            <p class="hero-subtitle">Add push resistance to your FTC robot with a single line of code. Novad uses odometry to detect unwanted movement and automatically applies counter-force.</p>
-            <div class="hero-buttons">
-                <a href="docs/quickstart.html" class="btn btn-primary">Get Started</a>
-                <a href="#demo" class="btn btn-secondary">Watch Demo</a>
-            </div>
-            <div class="hero-code">
-                <div class="code-header">
-                    <span class="code-dot red"></span>
-                    <span class="code-dot yellow"></span>
-                    <span class="code-dot green"></span>
-                    <span class="code-title">TeleOp.java</span>
-                </div>
-                <pre><code><span class="comment">// That's it. One line in your TeleOp loop.</span>
-<span class="keyword">novad</span>.<span class="function">defense</span>(gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x);</code></pre>
-            </div>
-        </div>
-        <div class="hero-visual">
-            <div class="robot-demo">
-                <div class="robot">
-                    <div class="robot-body"></div>
-                    <div class="robot-wheels">
-                        <div class="wheel fl"></div>
-                        <div class="wheel fr"></div>
-                        <div class="wheel bl"></div>
-                        <div class="wheel br"></div>
-                    </div>
-                    <div class="shield-effect"></div>
-                </div>
-                <div class="push-arrows">
-                    <div class="push-arrow arrow-1">→</div>
-                    <div class="push-arrow arrow-2">←</div>
-                    <div class="push-arrow arrow-3">↓</div>
-                </div>
-            </div>
-        </div>
-    </section>
+<div class="method">
+<div class="method-sig">Pose2d novad.getPose()</div>
+<div class="method-desc">
+Returns current robot position as <code>Pose2d(x, y, heading)</code>. X/Y in inches, heading in radians.
+</div>
+</div>
 
-    <!-- Stats Section -->
-    <section class="stats">
-        <div class="stats-container">
-            <div class="stat">
-                <div class="stat-number">3</div>
-                <div class="stat-label">Setup Steps</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number">5</div>
-                <div class="stat-label">Min to Tune</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number">1</div>
-                <div class="stat-label">Line of Code</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number">∞</div>
-                <div class="stat-label">Push Resistance</div>
-            </div>
-        </div>
-    </section>
+<div class="method">
+<div class="method-sig">void novad.resetHeading()</div>
+<div class="method-desc">
+Resets the heading to zero. Useful at the start of TeleOp if using field-centric driving.
+</div>
+</div>
 
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="section-container">
-            <h2 class="section-title">Why Teams Choose Novad</h2>
-            <p class="section-subtitle">Built by FTC teams, for FTC teams. Novad handles the complex physics so you can focus on scoring.</p>
-            
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🛡️</div>
-                    <h3>Push Resistance</h3>
-                    <p>Dual-layer PID correction detects and resists pushes in real-time. Velocity correction for immediate response, position correction to return to your spot.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
-                    <h3>Position Lock</h3>
-                    <p>Lock your robot in place with one button. Uses 100% motor power to resist displacement. Perfect for holding your ground at scoring positions.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎮</div>
-                    <h3>Driver Override</h3>
-                    <p>Corrections instantly disable when the driver moves the joysticks. Never fights the driver - always feels natural and responsive.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Smooth Ramp-Up</h3>
-                    <p>Configurable delay and ramp prevents jerky movements. Starts gentle, increases to full power if push continues. Comfortable for both robot and driver.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔧</div>
-                    <h3>Easy Tuning</h3>
-                    <p>Real-time PID tuning with panels.bylazar.com. Watch telemetry, adjust sliders, see results immediately. No redeploying code to tune.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔌</div>
-                    <h3>Universal Compatibility</h3>
-                    <p>Works with Pedro Pathing, RoadRunner, or any custom odometry. Adapters included for popular libraries. Mecanum, tank, or H-drive.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+<h3>Static Factory</h3>
 
-    <!-- How It Works Section -->
-    <section class="how-it-works" id="demo">
-        <div class="section-container">
-            <h2 class="section-title">How Novad Works</h2>
-            <p class="section-subtitle">Three layers of intelligent correction keep your robot exactly where you want it.</p>
-            
-            <div class="diagram">
-                <div class="diagram-flow">
-                    <div class="diagram-step">
-                        <div class="step-icon">📍</div>
-                        <h4>Detect</h4>
-                        <p>Odometry detects movement when joysticks are neutral</p>
-                    </div>
-                    <div class="diagram-arrow">→</div>
-                    <div class="diagram-step">
-                        <div class="step-icon">🧮</div>
-                        <h4>Calculate</h4>
-                        <p>PID controllers compute correction forces</p>
-                    </div>
-                    <div class="diagram-arrow">→</div>
-                    <div class="diagram-step">
-                        <div class="step-icon">⚙️</div>
-                        <h4>Apply</h4>
-                        <p>Motors apply counter-force to resist push</p>
-                    </div>
-                    <div class="diagram-arrow">→</div>
-                    <div class="diagram-step">
-                        <div class="step-icon">✅</div>
-                        <h4>Stabilize</h4>
-                        <p>Robot returns to position, ready for next push</p>
-                    </div>
-                </div>
-            </div>
+<div class="method">
+<div class="method-sig">Novad Novad.create(HardwareMap hardwareMap)</div>
+<div class="method-desc">
+Creates a Novad instance using settings from <code>NovadSetup.java</code>. Call once in your init.
+</div>
+</div>
+</section>
 
-            <div class="layers">
-                <div class="layer">
-                    <div class="layer-header">
-                        <span class="layer-number">1</span>
-                        <h4>Velocity Correction</h4>
-                    </div>
-                    <p>Immediate response. Compares joystick input to actual velocity. If you're being pushed (velocity without input), Novad applies counter-force instantly.</p>
-                    <code>correction = velocityPID(intendedVelocity - actualVelocity)</code>
-                </div>
-                <div class="layer">
-                    <div class="layer-header">
-                        <span class="layer-number">2</span>
-                        <h4>Position Correction</h4>
-                    </div>
-                    <p>Long-term stability. Returns robot to locked position over time. Only active when position is locked or drift exceeds threshold.</p>
-                    <code>correction = positionPID(lockedPosition - currentPosition)</code>
-                </div>
-                <div class="layer">
-                    <div class="layer-header">
-                        <span class="layer-number">3</span>
-                        <h4>Heading Correction</h4>
-                    </div>
-                    <p>Rotation lock. Maintains your robot's facing direction. Prevents opponents from spinning you around.</p>
-                    <code>correction = headingPID(lockedHeading - currentHeading)</code>
-                </div>
-            </div>
-        </div>
-    </section>
+<div class="divider">• • •</div>
 
-    <!-- Quick Start Section -->
-    <section class="quickstart">
-        <div class="section-container">
-            <h2 class="section-title">Get Started in 3 Steps</h2>
-            
-            <div class="steps">
-                <div class="step">
-                    <div class="step-header">
-                        <span class="step-number">1</span>
-                        <h3>Add Dependency</h3>
-                    </div>
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span class="code-title">build.gradle</span>
-                            <button class="copy-btn" data-copy="gradle">Copy</button>
-                        </div>
-                        <pre><code id="gradle-code">repositories {
-    maven { url 'https://jitpack.io' }
-}
+<section id="tuning">
+<h2>Tuning Guide</h2>
 
-dependencies {
-    implementation 'com.github.novad:novad:1.0.0'
-}</code></pre>
-                    </div>
-                </div>
+<h3>How Novad Works (Understanding the System)</h3>
+<p>Novad uses <strong>PID controllers</strong> to resist pushes. Here's the flow:</p>
+<ol>
+<li><strong>Read odometry</strong> - Where did the robot actually move this loop?</li>
+<li><strong>Calculate expected</strong> - Where should it have moved based on joystick input?</li>
+<li><strong>Find discrepancy</strong> - The difference is the external force (being pushed)</li>
+<li><strong>Apply correction</strong> - PID calculates how hard to push back</li>
+</ol>
 
-                <div class="step">
-                    <div class="step-header">
-                        <span class="step-number">2</span>
-                        <h3>Configure Robot</h3>
-                    </div>
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span class="code-title">NovadConstants.java</span>
-                            <button class="copy-btn" data-copy="config">Copy</button>
-                        </div>
-                        <pre><code id="config-code">// Set your drivetrain type
-public static final DriveType DRIVE_TYPE = DriveType.MECANUM_4_MOTOR;
+<p>There are <strong>3 PID controllers</strong>:</p>
+<ul>
+<li><strong>X Controller</strong> - Resists being pushed left/right</li>
+<li><strong>Y Controller</strong> - Resists being pushed forward/backward</li>
+<li><strong>Heading Controller</strong> - Resists being spun/rotated</li>
+</ul>
 
-// Set your odometry type  
-public static final OdometryType ODOMETRY_TYPE = OdometryType.THREE_WHEEL;</code></pre>
-                    </div>
-                </div>
+<h3>PID Values Explained</h3>
 
-                <div class="step">
-                    <div class="step-header">
-                        <span class="step-number">3</span>
-                        <h3>Use in TeleOp</h3>
-                    </div>
-                    <div class="code-block">
-                        <div class="code-header">
-                            <span class="code-title">TeleOp.java</span>
-                            <button class="copy-btn" data-copy="teleop">Copy</button>
-                        </div>
-                        <pre><code id="teleop-code">// Initialize (once in init)
-Novad novad = new Novad(odometry, drivetrain);
+<div class="box">
+<h4>Translational PID (TRANS_P, TRANS_I, TRANS_D)</h4>
+<p>Controls X and Y position resistance.</p>
+<table>
+<tr><th>Value</th><th>Default</th><th>What it does</th></tr>
+<tr><td><code>TRANS_P</code></td><td>0.1</td><td><strong>Proportional</strong> - Main correction strength. Higher = stronger resistance but may oscillate.</td></tr>
+<tr><td><code>TRANS_I</code></td><td>0.0</td><td><strong>Integral</strong> - Fixes slow drift over time. Usually leave at 0.</td></tr>
+<tr><td><code>TRANS_D</code></td><td>0.01</td><td><strong>Derivative</strong> - Dampens oscillation. Increase if robot shakes.</td></tr>
+</table>
+</div>
 
-// In your loop - that's it!
-while (opModeIsActive()) {
-    novad.defense(
-        gamepad1.left_stick_x,
-        -gamepad1.left_stick_y,
-        gamepad1.right_stick_x
-    );
-}</code></pre>
-                    </div>
-                </div>
-            </div>
+<div class="box">
+<h4>Heading PID (HEADING_P, HEADING_I, HEADING_D)</h4>
+<p>Controls rotation resistance. Prevents opponents from spinning you.</p>
+<table>
+<tr><th>Value</th><th>Default</th><th>What it does</th></tr>
+<tr><td><code>HEADING_P</code></td><td>1.0</td><td><strong>Proportional</strong> - How strongly it resists rotation. Higher = more rigid.</td></tr>
+<tr><td><code>HEADING_I</code></td><td>0.0</td><td><strong>Integral</strong> - Usually leave at 0.</td></tr>
+<tr><td><code>HEADING_D</code></td><td>0.01</td><td><strong>Derivative</strong> - Dampens rotational oscillation.</td></tr>
+</table>
+</div>
 
-            <div class="cta-box">
-                <h3>Ready to stop getting pushed around?</h3>
-                <p>Follow the complete quickstart guide for detailed setup instructions.</p>
-                <a href="docs/quickstart.html" class="btn btn-primary">Full Quickstart Guide →</a>
-            </div>
-        </div>
-    </section>
+<h3>Live Tuning with FTC Dashboard</h3>
+<p>All values in <code>NovadSetup.java</code> can be tuned in real-time:</p>
+<ol>
+<li>Connect your laptop to the robot's WiFi</li>
+<li>Open <a href="http://192.168.43.1:8080/dash">http://192.168.43.1:8080/dash</a></li>
+<li>Find "NovadSetup" in the sidebar</li>
+<li>Adjust values - changes apply instantly!</li>
+<li>Once happy, copy final values back to NovadSetup.java</li>
+</ol>
 
-    <!-- Integration Section -->
-    <section class="integrations">
-        <div class="section-container">
-            <h2 class="section-title">Works With Your Stack</h2>
-            <p class="section-subtitle">Novad integrates seamlessly with the libraries you already use.</p>
-            
-            <div class="integration-grid">
-                <div class="integration-card">
-                    <div class="integration-logo">🐙</div>
-                    <h4>Pedro Pathing</h4>
-                    <p>Use the same localizer for auto and teleop</p>
-                    <pre><code>NovadOdometry odometry = 
-  new PedroPathingAdapter(follower);</code></pre>
-                </div>
-                <div class="integration-card">
-                    <div class="integration-logo">🛣️</div>
-                    <h4>RoadRunner</h4>
-                    <p>Leverage your existing RoadRunner setup</p>
-                    <pre><code>NovadOdometry odometry = 
-  new RoadRunnerAdapter(drive);</code></pre>
-                </div>
-                <div class="integration-card">
-                    <div class="integration-logo">⚙️</div>
-                    <h4>Custom Odometry</h4>
-                    <p>Implement NovadOdometry interface</p>
-                    <pre><code>class MyOdometry implements NovadOdometry {
-  // Your implementation
-}</code></pre>
-                </div>
-            </div>
-        </div>
-    </section>
+<h3>Tuning Procedure</h3>
+<div class="box warn">
+<h4>Step-by-Step Tuning</h4>
+<ol>
+<li><strong>Start with defaults</strong> - They work for most robots</li>
+<li><strong>Test defense mode</strong> - Drive around, have someone push you</li>
+<li><strong>If robot oscillates (shakes)</strong> - Decrease P, increase D</li>
+<li><strong>If robot doesn't resist enough</strong> - Increase P</li>
+<li><strong>If robot slowly drifts</strong> - Add small I value (0.001)</li>
+<li><strong>Test lockdown</strong> - Should be rock solid. If it shakes, increase D</li>
+</ol>
+</div>
 
-    <!-- Tuning Preview Section -->
-    <section class="tuning-preview">
-        <div class="section-container">
-            <div class="tuning-content">
-                <h2>Real-Time Tuning</h2>
-                <p>Fine-tune your defense using panels.bylazar.com. Adjust PID values while pushing your robot and see results instantly.</p>
-                <ul class="tuning-features">
-                    <li>✓ Live slider adjustments</li>
-                    <li>✓ Real-time telemetry graphs</li>
-                    <li>✓ Position and velocity error display</li>
-                    <li>✓ No redeploying to change values</li>
-                </ul>
-                <a href="docs/tuning.html" class="btn btn-primary">Tuning Guide →</a>
-            </div>
-            <div class="tuning-visual">
-                <div class="dashboard-mockup">
-                    <div class="dashboard-header">panels.bylazar.com</div>
-                    <div class="dashboard-content">
-                        <div class="slider-group">
-                            <label>VELOCITY_KP</label>
-                            <div class="slider-track">
-                                <div class="slider-fill" style="width: 60%"></div>
-                                <div class="slider-thumb" style="left: 60%"></div>
-                            </div>
-                            <span>1.50</span>
-                        </div>
-                        <div class="slider-group">
-                            <label>VELOCITY_KI</label>
-                            <div class="slider-track">
-                                <div class="slider-fill" style="width: 20%"></div>
-                                <div class="slider-thumb" style="left: 20%"></div>
-                            </div>
-                            <span>0.20</span>
-                        </div>
-                        <div class="slider-group">
-                            <label>VELOCITY_KD</label>
-                            <div class="slider-track">
-                                <div class="slider-fill" style="width: 10%"></div>
-                                <div class="slider-thumb" style="left: 10%"></div>
-                            </div>
-                            <span>0.10</span>
-                        </div>
-                        <div class="telemetry-box">
-                            <div class="telemetry-row">
-                                <span>Position Error:</span>
-                                <span class="value">0.23 in</span>
-                            </div>
-                            <div class="telemetry-row">
-                                <span>Velocity Error:</span>
-                                <span class="value">0.05</span>
-                            </div>
-                            <div class="telemetry-row">
-                                <span>Correction Power:</span>
-                                <span class="value">0.42</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<h3>Other Settings</h3>
+<table>
+<tr><th>Setting</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>MAX_POWER</code></td><td>0.8</td><td>Maximum correction power. Lower = gentler resistance.</td></tr>
+<tr><td><code>USE_FIELD_CENTRIC</code></td><td>false</td><td>Enable field-centric driving. Requires good heading from odometry.</td></tr>
+<tr><td><code>USE_BRAKE_MODE</code></td><td>true</td><td>Motors brake when stopped. Helps hold position.</td></tr>
+</table>
+</section>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-brand">
-                <span class="logo-icon">🛡️</span>
-                <span class="logo-text">Novad</span>
-                <p>FTC Defense Library</p>
-            </div>
-            <div class="footer-links">
-                <div class="footer-column">
-                    <h4>Documentation</h4>
-                    <a href="docs/quickstart.html">Quickstart</a>
-                    <a href="docs/tuning.html">Tuning Guide</a>
-                    <a href="docs/api.html">API Reference</a>
-                    <a href="docs/examples.html">Examples</a>
-                </div>
-                <div class="footer-column">
-                    <h4>Resources</h4>
-                    <a href="docs/theory.html">How It Works</a>
-                    <a href="docs/troubleshooting.html">Troubleshooting</a>
-                    <a href="docs/faq.html">FAQ</a>
-                </div>
-                <div class="footer-column">
-                    <h4>Community</h4>
-                    <a href="https://github.com/novad/novad" target="_blank">GitHub</a>
-                    <a href="https://discord.gg/novad" target="_blank">Discord</a>
-                </div>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>© 2026 Novad. Built with 💙 for the FTC community.</p>
-        </div>
-    </footer>
+<div class="divider">• • •</div>
 
-    <script src="js/main.js"></script>
+<section>
+<h2>Odometry Setup</h2>
+
+<h3>GoBilda Pinpoint (Recommended)</h3>
+<p>Easiest option. Just set the device name:</p>
+<pre><code><span class="kw">public static boolean</span> USE_PINPOINT = <span class="kw">true</span>;
+<span class="kw">public static</span> String PINPOINT_NAME = <span class="str">"pinpoint"</span>;</code></pre>
+
+<h3>Three Dead Wheels</h3>
+<p>More setup required:</p>
+<pre><code><span class="kw">public static boolean</span> USE_THREE_WHEEL = <span class="kw">true</span>;
+
+<span class="cmt">// Encoder ports (which motor port each encoder plugs into)</span>
+<span class="kw">public static</span> String LEFT_ENCODER   = <span class="str">"frontLeft"</span>;
+<span class="kw">public static</span> String RIGHT_ENCODER  = <span class="str">"frontRight"</span>;
+<span class="kw">public static</span> String CENTER_ENCODER = <span class="str">"backLeft"</span>;
+
+<span class="cmt">// Critical: ticks to inches conversion</span>
+<span class="kw">public static double</span> TICKS_TO_INCHES = <span class="num">0.000724</span>;
+
+<span class="cmt">// Physical measurements (inches)</span>
+<span class="kw">public static double</span> TRACK_WIDTH = <span class="num">14.0</span>;    <span class="cmt">// Left to right encoder distance</span>
+<span class="kw">public static double</span> CENTER_OFFSET = <span class="num">6.0</span>;  <span class="cmt">// Center encoder to robot center</span></code></pre>
+
+<div class="box">
+<h4>Common TICKS_TO_INCHES Values</h4>
+<table>
+<tr><th>Encoder</th><th>Wheel</th><th>Value</th></tr>
+<tr><td>REV Through Bore (8192 CPR)</td><td>goBilda 48mm</td><td>0.000724</td></tr>
+<tr><td>REV Through Bore (8192 CPR)</td><td>goBilda 60mm</td><td>0.000906</td></tr>
+</table>
+<p><strong>Formula:</strong> (π × wheel_diameter_inches) / encoder_CPR</p>
+</div>
+</section>
+
+<footer>
+<p><strong>NOVAD</strong> v2.0.0</p>
+<p>Built for FTC teams who refuse to be pushed around.</p>
+<p><a href="https://github.com/ekansh-arora0/novad">GitHub</a></p>
+</footer>
+
 </body>
 </html>

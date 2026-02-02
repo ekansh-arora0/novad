@@ -1,411 +1,224 @@
 package org.firstinspires.ftc.teamcode.novad;
 
-import org.firstinspires.ftc.teamcode.novad.config.NovadConfig;
-import org.firstinspires.ftc.teamcode.novad.controller.DefenseController;
-import org.firstinspires.ftc.teamcode.novad.interfaces.NovadDrivetrain;
-import org.firstinspires.ftc.teamcode.novad.interfaces.NovadOdometry;
-import org.firstinspires.ftc.teamcode.novad.util.Vector2D;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import org.firstinspires.ftc.teamcode.NovadSetup;
 
 /**
- * Novad - FTC Defense Library
+ * NOVAD - FTC Defense Library
  * 
- * Stop getting pushed around. Add push resistance to your TeleOp with a single method call.
- * 
- * QUICK START:
- * <pre>
- * // Initialize (once in init)
- * Novad novad = new Novad(odometry, drivetrain);
- * 
- * // Use in TeleOp loop
- * novad.defense(gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x);
- * </pre>
- * 
- * FEATURES:
- * - Dual-layer PID correction (velocity + position)
- * - Automatic driver override detection
- * - Gradual ramp-up to prevent jerky movements
- * - Position lock mode for maximum resistance
- * - Works with any odometry system
- * 
- * @author Novad Defense Library
- * @version 1.0.0
- * @see <a href="https://novad.dev">Documentation</a>
+ * API:
+ *   novad.defense(strafe, forward, rotate);  // Drive with push resistance
+ *   novad.lockdown();                         // Immovable mode
+ *   novad.unlock();                           // Exit lockdown
  */
 public class Novad {
 
-    /** Library version */
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "2.0.0";
 
-    // Core components
-    private final DefenseController controller;
-    private final NovadOdometry odometry;
-    private final NovadDrivetrain drivetrain;
+    private final Localizer localizer;
+    private final MecanumDrivetrain drivetrain;
 
-    // State
-    private boolean enabled;
+    private final PIDController xController;
+    private final PIDController yController;
+    private final PIDController headingController;
 
-    /**
-     * Create a new Novad defense system
-     * 
-     * @param odometry Your odometry implementation (NovadOdometry interface)
-     * @param drivetrain Your drivetrain implementation (NovadDrivetrain interface)
-     */
-    public Novad(NovadOdometry odometry, NovadDrivetrain drivetrain) {
-        this.odometry = odometry;
-        this.drivetrain = drivetrain;
-        this.controller = new DefenseController(odometry, drivetrain, NovadConfig.getDefault());
-        this.enabled = false;
-    }
+    private Pose2d lastPose;
+    private Pose2d lockdownTarget = null;
+    
+    private final ElapsedTime loopTimer = new ElapsedTime();
+    private double lastLoopTime = 0;
 
-    /**
-     * Create Novad with a specific configuration
-     */
-    public Novad(NovadOdometry odometry, NovadDrivetrain drivetrain, NovadConfig config) {
-        this.odometry = odometry;
-        this.drivetrain = drivetrain;
-        this.controller = new DefenseController(odometry, drivetrain, config);
-        this.enabled = false;
-    }
+    private boolean inLockdown = false;
 
-    // ========================================================================================
-    // MAIN API METHODS - These are the methods teams will use
-    // ========================================================================================
+    private static final double MAX_VELOCITY = 40.0;
+    private static final double MAX_ANGULAR_VEL = Math.PI;
 
-    /**
-     * Enable defense and apply corrections while passing through driver input
-     * 
-     * Call this method every loop iteration in your TeleOp. It will:
-     * - Pass through your joystick inputs to the drivetrain
-     * - Detect when the robot is being pushed (movement without joystick input)
-     * - Apply counter-force to resist the push
-     * - Automatically disable corrections when you move the joysticks
-     * 
-     * Example:
-     * <pre>
-     * while (opModeIsActive()) {
-     *     novad.defense(
-     *         gamepad1.left_stick_x,   // Strafe
-     *         -gamepad1.left_stick_y,  // Forward (note: invert Y!)
-     *         gamepad1.right_stick_x   // Rotate
-     *     );
-     * }
-     * </pre>
-     * 
-     * @param leftStickX Strafe input (-1 to 1, positive = right)
-     * @param leftStickY Forward input (-1 to 1, positive = forward)
-     * @param rightStickX Rotation input (-1 to 1, positive = counter-clockwise)
-     */
-    public void defense(double leftStickX, double leftStickY, double rightStickX) {
-        if (!enabled) {
-            enable();
+    public static Novad create(HardwareMap hardwareMap) {
+        Localizer localizer;
+
+        if (NovadSetup.USE_PINPOINT) {
+            localizer = new PinpointLocalizer(hardwareMap, NovadSetup.PINPOINT_NAME);
+        } else if (NovadSetup.USE_THREE_WHEEL) {
+            localizer = new ThreeWheelLocalizer(
+                hardwareMap,
+                NovadSetup.LEFT_ENCODER,
+                NovadSetup.RIGHT_ENCODER,
+                NovadSetup.CENTER_ENCODER,
+                NovadSetup.TICKS_TO_INCHES,
+                NovadSetup.TRACK_WIDTH,
+                NovadSetup.CENTER_OFFSET,
+                NovadSetup.LEFT_ENCODER_REVERSED,
+                NovadSetup.RIGHT_ENCODER_REVERSED,
+                NovadSetup.CENTER_ENCODER_REVERSED
+            );
+        } else {
+            throw new IllegalStateException("Enable USE_PINPOINT or USE_THREE_WHEEL in NovadSetup");
         }
-        controller.update(leftStickX, leftStickY, rightStickX);
+
+        return new Novad(localizer, new MecanumDrivetrain(hardwareMap));
+    }
+
+    public Novad(Localizer localizer, MecanumDrivetrain drivetrain) {
+        this.localizer = localizer;
+        this.drivetrain = drivetrain;
+
+        this.xController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D);
+        this.yController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D);
+        this.headingController = new PIDController(NovadSetup.HEADING_P, NovadSetup.HEADING_I, NovadSetup.HEADING_D);
+
+        localizer.update();
+        lastPose = localizer.getPose();
+        loopTimer.reset();
     }
 
     /**
-     * Lock the robot's current position for maximum push resistance
-     * 
-     * When locked, the robot will use all available motor power to resist
-     * any displacement and return to the locked position. The driver can
-     * still override by moving the joysticks.
-     * 
-     * Example:
-     * <pre>
-     * if (gamepad1.a) {
-     *     novad.lockPosition();
-     * }
-     * </pre>
+     * DEFENSE MODE - Call in your loop.
+     * Drives robot while resisting external pushes.
      */
-    public void lockPosition() {
-        if (!enabled) {
-            enable();
+    public void defense(double strafe, double forward, double rotate) {
+        if (inLockdown) {
+            holdPosition();
+            return;
         }
-        controller.lockPosition();
+
+        localizer.update();
+        Pose2d currentPose = localizer.getPose();
+        
+        double dt = getDeltaTime();
+        updatePIDGains();
+
+        double actualDX = currentPose.x - lastPose.x;
+        double actualDY = currentPose.y - lastPose.y;
+        double actualDH = normalizeAngle(currentPose.heading - lastPose.heading);
+
+        double expectedVX = strafe * MAX_VELOCITY;
+        double expectedVY = forward * MAX_VELOCITY;
+        double expectedVH = rotate * MAX_ANGULAR_VEL;
+
+        if (NovadSetup.USE_FIELD_CENTRIC) {
+            double cos = Math.cos(currentPose.heading);
+            double sin = Math.sin(currentPose.heading);
+            double temp = expectedVX;
+            expectedVX = temp * cos - expectedVY * sin;
+            expectedVY = temp * sin + expectedVY * cos;
+        }
+
+        double expectedDX = expectedVX * dt;
+        double expectedDY = expectedVY * dt;
+        double expectedDH = expectedVH * dt;
+
+        double discX = actualDX - expectedDX;
+        double discY = actualDY - expectedDY;
+        double discH = normalizeAngle(actualDH - expectedDH);
+
+        if (Math.abs(discX) < 0.05) discX = 0;
+        if (Math.abs(discY) < 0.05) discY = 0;
+        if (Math.abs(discH) < 0.01) discH = 0;
+
+        double corrX = clamp(-xController.calculate(discX), -NovadSetup.MAX_POWER, NovadSetup.MAX_POWER);
+        double corrY = clamp(-yController.calculate(discY), -NovadSetup.MAX_POWER, NovadSetup.MAX_POWER);
+        double corrH = clamp(-headingController.calculate(discH), -NovadSetup.MAX_POWER, NovadSetup.MAX_POWER);
+
+        double finalStrafe = strafe + corrX;
+        double finalForward = forward + corrY;
+        double finalRotate = rotate + corrH;
+
+        double max = Math.max(1.0, Math.abs(finalStrafe) + Math.abs(finalForward) + Math.abs(finalRotate));
+        finalStrafe /= max;
+        finalForward /= max;
+        finalRotate /= max;
+
+        if (NovadSetup.USE_FIELD_CENTRIC) {
+            drivetrain.driveFieldCentric(finalStrafe, finalForward, finalRotate, currentPose.heading);
+        } else {
+            drivetrain.drive(finalStrafe, finalForward, finalRotate);
+        }
+
+        lastPose = currentPose;
     }
 
     /**
-     * Release the position lock
-     * 
-     * The robot will still resist pushes, but won't try to return
-     * to a specific position. Call this when the driver wants to
-     * move freely again.
-     * 
-     * Example:
-     * <pre>
-     * if (gamepad1.b) {
-     *     novad.unlockPosition();
-     * }
-     * </pre>
+     * LOCKDOWN - Robot becomes immovable.
      */
-    public void unlockPosition() {
-        controller.unlockPosition();
+    public void lockdown() {
+        if (!inLockdown) {
+            localizer.update();
+            lockdownTarget = localizer.getPose();
+            inLockdown = true;
+            xController.reset();
+            yController.reset();
+            headingController.reset();
+        }
+        holdPosition();
     }
 
     /**
-     * Toggle position lock on/off
-     * 
-     * Convenient for using with a single button press.
-     * 
-     * Example:
-     * <pre>
-     * if (gamepad1.a && !lastA) {  // Rising edge
-     *     novad.togglePositionLock();
-     * }
-     * lastA = gamepad1.a;
-     * </pre>
+     * Exit lockdown.
      */
-    public void togglePositionLock() {
-        controller.togglePositionLock();
+    public void unlock() {
+        inLockdown = false;
+        localizer.update();
+        lastPose = localizer.getPose();
     }
 
-    /**
-     * Enable the defense system
-     * 
-     * Called automatically by defense(), but you can call it
-     * explicitly if needed.
-     */
-    public void enable() {
-        enabled = true;
-        controller.enable();
+    public boolean isLocked() {
+        return inLockdown;
     }
 
-    /**
-     * Disable the defense system completely
-     * 
-     * Stops all motors and turns off all corrections.
-     * Call this at the end of the match or when you don't need defense.
-     */
-    public void disable() {
-        enabled = false;
-        controller.disable();
+    public Pose2d getPose() {
+        return localizer.getPose();
     }
 
-    // ========================================================================================
-    // CONFIGURATION METHODS
-    // ========================================================================================
-
-    /**
-     * Update PID gains from a NovadConfig
-     * 
-     * Call this after changing config or during live tuning.
-     */
-    public void updateGainsFromConfig(NovadConfig config) {
-        controller.updateGainsFromConfig(config);
+    public void resetHeading() {
+        localizer.update();
+        Pose2d p = localizer.getPose();
+        lastPose = new Pose2d(p.x, p.y, 0);
+        if (inLockdown && lockdownTarget != null) {
+            lockdownTarget = new Pose2d(lockdownTarget.x, lockdownTarget.y, 0);
+        }
     }
 
-    /**
-     * Set heading PID gains (convenience alias)
-     */
-    public void setHeadingGains(double kP, double kI, double kD) {
-        controller.setHeadingGains(kP, kI, kD);
+    private void holdPosition() {
+        localizer.update();
+        Pose2d current = localizer.getPose();
+        updatePIDGains();
+
+        double errX = lockdownTarget.x - current.x;
+        double errY = lockdownTarget.y - current.y;
+        double errH = normalizeAngle(lockdownTarget.heading - current.heading);
+
+        double corrX = clamp(xController.calculate(errX), -1.0, 1.0);
+        double corrY = clamp(yController.calculate(errY), -1.0, 1.0);
+        double corrH = clamp(headingController.calculate(errH), -1.0, 1.0);
+
+        if (NovadSetup.USE_FIELD_CENTRIC) {
+            drivetrain.driveFieldCentric(corrX, corrY, corrH, current.heading);
+        } else {
+            drivetrain.drive(corrX, corrY, corrH);
+        }
     }
 
-    /**
-     * Set velocity PID gains
-     * @param kP Proportional gain
-     * @param kI Integral gain
-     * @param kD Derivative gain
-     */
-    public void setVelocityPID(double kP, double kI, double kD) {
-        controller.setVelocityGains(kP, kI, kD);
+    private double getDeltaTime() {
+        double now = loopTimer.seconds();
+        double dt = now - lastLoopTime;
+        lastLoopTime = now;
+        return (dt <= 0 || dt > 0.5) ? 0.02 : dt;
     }
 
-    /**
-     * Set position PID gains
-     * @param kP Proportional gain
-     * @param kI Integral gain
-     * @param kD Derivative gain
-     */
-    public void setPositionPID(double kP, double kI, double kD) {
-        controller.setPositionGains(kP, kI, kD);
+    private void updatePIDGains() {
+        xController.setGains(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D);
+        yController.setGains(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D);
+        headingController.setGains(NovadSetup.HEADING_P, NovadSetup.HEADING_I, NovadSetup.HEADING_D);
     }
 
-    /**
-     * Set heading PID gains
-     * @param kP Proportional gain
-     * @param kI Integral gain
-     * @param kD Derivative gain
-     */
-    public void setHeadingPID(double kP, double kI, double kD) {
-        controller.setHeadingGains(kP, kI, kD);
+    private double normalizeAngle(double a) {
+        while (a > Math.PI) a -= 2 * Math.PI;
+        while (a < -Math.PI) a += 2 * Math.PI;
+        return a;
     }
 
-    // ========================================================================================
-    // STATUS METHODS - For telemetry and debugging
-    // ========================================================================================
-
-    /**
-     * Check if the defense system is enabled
-     * @return True if enabled
-     */
-    public boolean isEnabled() {
-        return enabled && controller.isEnabled();
-    }
-
-    /**
-     * Check if position is locked
-     * @return True if position locked
-     */
-    public boolean isPositionLocked() {
-        return controller.isPositionLocked();
-    }
-
-    /**
-     * Check if driver is currently providing input
-     * @return True if joysticks exceed deadband
-     */
-    public boolean isDriverActive() {
-        return controller.isDriverActive();
-    }
-
-    /**
-     * Get the current position error (locked - current)
-     * @return Position error vector in inches
-     */
-    public Vector2D getPositionError() {
-        return controller.getPositionError();
-    }
-
-    /**
-     * Get the current velocity error (intended - actual)
-     * @return Velocity error vector
-     */
-    public Vector2D getVelocityError() {
-        return controller.getVelocityError();
-    }
-
-    /**
-     * Get the current heading error
-     * @return Heading error in radians
-     */
-    public double getHeadingError() {
-        return controller.getHeadingError();
-    }
-
-    /**
-     * Get the current ramp multiplier (0.0 to 1.0)
-     * @return Ramp multiplier
-     */
-    public double getRampMultiplier() {
-        return controller.getRampMultiplier();
-    }
-
-    /**
-     * Get the total correction magnitude being applied
-     * @return Correction magnitude
-     */
-    public double getTotalCorrectionMagnitude() {
-        return controller.getTotalCorrectionMagnitude();
-    }
-
-    /**
-     * Get the locked position
-     * @return Locked position vector
-     */
-    public Vector2D getLockedPosition() {
-        return controller.getLockedPosition();
-    }
-
-    /**
-     * Get the locked heading
-     * @return Locked heading in radians
-     */
-    public double getLockedHeading() {
-        return controller.getLockedHeading();
-    }
-
-    // ========================================================================================
-    // PREDICTIVE DEFENSE METHODS
-    // ========================================================================================
-
-    /**
-     * Enable/disable predictive defense
-     * When enabled, Novad predicts where you'll be pushed and counters BEFORE you get there.
-     */
-    public void setPredictiveEnabled(boolean enabled) {
-        controller.setPredictiveEnabled(enabled);
-    }
-
-    /**
-     * Set how far ahead to predict (in milliseconds)
-     * Higher = faster response, potentially less stable
-     * Lower = more stable, slower response
-     * Recommended: 30-80ms
-     */
-    public void setPredictionLookahead(double milliseconds) {
-        controller.setPredictionLookahead(milliseconds);
-    }
-
-    /**
-     * Set acceleration threshold that triggers instant response
-     * When acceleration exceeds this, boost multiplier is applied
-     */
-    public void setAccelTriggerThreshold(double inchesPerSecondSquared) {
-        controller.setAccelTriggerThreshold(inchesPerSecondSquared);
-    }
-
-    /**
-     * Set the boost multiplier when sudden acceleration is detected
-     * 1.0 = no boost, 2.0 = double response
-     */
-    public void setInstantBoostMultiplier(double multiplier) {
-        controller.setInstantBoostMultiplier(multiplier);
-    }
-
-    /**
-     * Check if predictive defense is currently active (impact detected)
-     */
-    public boolean isPredictiveActive() {
-        return controller.isPredictiveActive();
-    }
-
-    /**
-     * Get the current boost multiplier being applied
-     */
-    public double getCurrentBoostMultiplier() {
-        return controller.getCurrentBoostMultiplier();
-    }
-
-    /**
-     * Get the current acceleration magnitude
-     */
-    public double getAccelerationMagnitude() {
-        return controller.getAccelerationMagnitude();
-    }
-
-    // ========================================================================================
-    // UTILITY METHODS
-    // ========================================================================================
-
-    /**
-     * Get the library version
-     * @return Version string
-     */
-    public static String getVersion() {
-        return VERSION;
-    }
-
-    /**
-     * Get access to the underlying odometry system
-     * @return Odometry instance
-     */
-    public NovadOdometry getOdometry() {
-        return odometry;
-    }
-
-    /**
-     * Get access to the underlying drivetrain
-     * @return Drivetrain instance
-     */
-    public NovadDrivetrain getDrivetrain() {
-        return drivetrain;
-    }
-
-    /**
-     * Get access to the defense controller for advanced usage
-     * @return DefenseController instance
-     */
-    public DefenseController getController() {
-        return controller;
+    private double clamp(double v, double min, double max) {
+        return Math.max(min, Math.min(max, v));
     }
 }

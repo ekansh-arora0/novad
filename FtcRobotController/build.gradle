@@ -21,6 +21,9 @@ allprojects {
     repositories {
         mavenCentral()
         google()
+        
+        // ACME Robotics repo for FTC Dashboard (required for Novad)
+        maven { url = 'https://maven.brott.dev/' }
     }
 }
 
