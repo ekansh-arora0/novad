@@ -212,28 +212,40 @@ Creates a Novad instance using settings from <code>NovadSetup.java</code>. Call 
 <li><strong>Heading Controller</strong> - Resists being spun/rotated</li>
 </ul>
 
-<h3>PID Values Explained</h3>
+<h3>PIDF Values Explained</h3>
 
 <div class="box">
-<h4>Translational PID (TRANS_P, TRANS_I, TRANS_D)</h4>
+<h4>Translational PIDF (TRANS_P, TRANS_I, TRANS_D, TRANS_F)</h4>
 <p>Controls X and Y position resistance.</p>
 <table>
 <tr><th>Value</th><th>Default</th><th>What it does</th></tr>
 <tr><td><code>TRANS_P</code></td><td>0.1</td><td><strong>Proportional</strong> - Main correction strength. Higher = stronger resistance but may oscillate.</td></tr>
 <tr><td><code>TRANS_I</code></td><td>0.0</td><td><strong>Integral</strong> - Fixes slow drift over time. Usually leave at 0.</td></tr>
 <tr><td><code>TRANS_D</code></td><td>0.01</td><td><strong>Derivative</strong> - Dampens oscillation. Increase if robot shakes.</td></tr>
+<tr><td><code>TRANS_F</code></td><td>0.0</td><td><strong>Feedforward</strong> - Constant power to overcome static friction. Helps with motor jitter at low speeds.</td></tr>
 </table>
 </div>
 
 <div class="box">
-<h4>Heading PID (HEADING_P, HEADING_I, HEADING_D)</h4>
+<h4>Heading PIDF (HEADING_P, HEADING_I, HEADING_D, HEADING_F)</h4>
 <p>Controls rotation resistance. Prevents opponents from spinning you.</p>
 <table>
 <tr><th>Value</th><th>Default</th><th>What it does</th></tr>
 <tr><td><code>HEADING_P</code></td><td>1.0</td><td><strong>Proportional</strong> - How strongly it resists rotation. Higher = more rigid.</td></tr>
 <tr><td><code>HEADING_I</code></td><td>0.0</td><td><strong>Integral</strong> - Usually leave at 0.</td></tr>
 <tr><td><code>HEADING_D</code></td><td>0.01</td><td><strong>Derivative</strong> - Dampens rotational oscillation.</td></tr>
+<tr><td><code>HEADING_F</code></td><td>0.0</td><td><strong>Feedforward</strong> - Constant power to overcome rotational friction.</td></tr>
 </table>
+</div>
+
+<div class="box warn">
+<h4>When to Use the F Term (Feedforward)</h4>
+<p>The F term adds a constant power in the direction of the error. Use it when:</p>
+<ul>
+<li><strong>Motors jitter</strong> at small corrections (buzzing sound, twitching)</li>
+<li><strong>Robot doesn't quite reach</strong> target position (needs extra push)</li>
+<li>Typical values: 0.02 - 0.1 (start small!)</li>
+</ul>
 </div>
 
 <h3>Live Tuning with FTC Dashboard</h3>
@@ -273,10 +285,32 @@ Creates a Novad instance using settings from <code>NovadSetup.java</code>. Call 
 <section>
 <h2>Odometry Setup</h2>
 
-<h3>GoBilda Pinpoint (Recommended)</h3>
-<p>Easiest option. Just set the device name:</p>
+<h3>GoBilda Pinpoint</h3>
+<p>The Pinpoint requires configuration for your specific pod setup:</p>
 <pre><code><span class="kw">public static boolean</span> USE_PINPOINT = <span class="kw">true</span>;
-<span class="kw">public static</span> String PINPOINT_NAME = <span class="str">"pinpoint"</span>;</code></pre>
+<span class="kw">public static</span> String PINPOINT_NAME = <span class="str">"pinpoint"</span>;
+
+<span class="cmt">// Using standard goBilda odometry pods?</span>
+<span class="kw">public static boolean</span> PINPOINT_USE_GOBILDA_PODS = <span class="kw">true</span>;
+
+<span class="cmt">// Pod offsets from robot center (MILLIMETERS!)</span>
+<span class="cmt">// X = forward/back, Y = left/right</span>
+<span class="kw">public static double</span> PINPOINT_X_OFFSET = <span class="num">0</span>;   <span class="cmt">// mm forward from center</span>
+<span class="kw">public static double</span> PINPOINT_Y_OFFSET = <span class="num">0</span>;   <span class="cmt">// mm left from center</span>
+
+<span class="cmt">// Reverse pod directions if counting backwards</span>
+<span class="kw">public static boolean</span> PINPOINT_X_REVERSED = <span class="kw">false</span>;
+<span class="kw">public static boolean</span> PINPOINT_Y_REVERSED = <span class="kw">false</span>;</code></pre>
+
+<div class="box warn">
+<h4>Important: Measure Pod Offsets!</h4>
+<p>The Pinpoint needs to know where the odometry pods are physically located relative to the robot's center. Measure in <strong>millimeters</strong>:</p>
+<ul>
+<li><strong>X_OFFSET</strong>: Distance forward (+) or backward (-) from robot center</li>
+<li><strong>Y_OFFSET</strong>: Distance left (+) or right (-) from robot center</li>
+</ul>
+<p>If using custom encoders (not goBilda pods), set <code>PINPOINT_USE_GOBILDA_PODS = false</code> and configure <code>PINPOINT_TICKS_PER_MM</code>.</p>
+</div>
 
 <h3>Three Dead Wheels</h3>
 <p>More setup required:</p>

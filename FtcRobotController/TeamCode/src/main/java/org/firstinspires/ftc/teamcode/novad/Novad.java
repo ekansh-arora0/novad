@@ -63,9 +63,9 @@ public class Novad {
         this.localizer = localizer;
         this.drivetrain = drivetrain;
 
-        this.xController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D);
-        this.yController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D);
-        this.headingController = new PIDController(NovadSetup.HEADING_P, NovadSetup.HEADING_I, NovadSetup.HEADING_D);
+        this.xController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D, NovadSetup.TRANS_F);
+        this.yController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D, NovadSetup.TRANS_F);
+        this.headingController = new PIDController(NovadSetup.HEADING_P, NovadSetup.HEADING_I, NovadSetup.HEADING_D, NovadSetup.HEADING_F);
 
         localizer.update();
         lastPose = localizer.getPose();
@@ -207,9 +207,9 @@ public class Novad {
     }
 
     private void updatePIDGains() {
-        xController.setGains(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D);
-        yController.setGains(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D);
-        headingController.setGains(NovadSetup.HEADING_P, NovadSetup.HEADING_I, NovadSetup.HEADING_D);
+        xController.setGains(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D, NovadSetup.TRANS_F);
+        yController.setGains(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D, NovadSetup.TRANS_F);
+        headingController.setGains(NovadSetup.HEADING_P, NovadSetup.HEADING_I, NovadSetup.HEADING_D, NovadSetup.HEADING_F);
     }
 
     private double normalizeAngle(double a) {

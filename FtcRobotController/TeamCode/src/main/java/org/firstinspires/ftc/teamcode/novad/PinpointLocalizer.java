@@ -2,16 +2,19 @@ package org.firstinspires.ftc.teamcode.novad;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.teamcode.NovadSetup;
 
 /**
  * Pinpoint Odometry Localizer
  * 
- * Uses the FTC SDK's built-in GoBildaPinpointDriver to get robot pose.
- * This is the easiest odometry option - just plug in the Pinpoint and go!
+ * Uses goBilda Pinpoint Odometry Computer.
+ * Requires configuration in NovadSetup.java:
+ * - PINPOINT_X_OFFSET: X offset of Pinpoint from robot center (mm)
+ * - PINPOINT_Y_OFFSET: Y offset of Pinpoint from robot center (mm)
+ * - PINPOINT_ENCODER_RESOLUTION: Which encoder pods you're using
  */
 public class PinpointLocalizer implements Localizer {
     
@@ -19,14 +22,31 @@ public class PinpointLocalizer implements Localizer {
     private Pose2d currentPose = new Pose2d();
     private double headingOffset = 0;
 
-    /**
-     * Create a Pinpoint localizer
-     * 
-     * @param hardwareMap The hardware map from OpMode
-     * @param deviceName The configured name of the Pinpoint (usually "pinpoint")
-     */
     public PinpointLocalizer(HardwareMap hardwareMap, String deviceName) {
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, deviceName);
+        
+        // Configure encoder resolution based on NovadSetup
+        // goBilda odometry pods come in two resolutions
+        if (NovadSetup.PINPOINT_USE_GOBILDA_PODS) {
+            pinpoint.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+        } else {
+            // Custom encoder - set ticks per mm
+            pinpoint.setEncoderResolution(NovadSetup.PINPOINT_TICKS_PER_MM);
+        }
+        
+        // Set pod offsets (distance from robot center in mm)
+        // X = forward/backward offset, Y = left/right offset
+        pinpoint.setOffsets(NovadSetup.PINPOINT_X_OFFSET, NovadSetup.PINPOINT_Y_OFFSET);
+        
+        // Set encoder directions if needed
+        pinpoint.setEncoderDirections(
+            NovadSetup.PINPOINT_X_REVERSED 
+                ? GoBildaPinpointDriver.EncoderDirection.REVERSED 
+                : GoBildaPinpointDriver.EncoderDirection.FORWARD,
+            NovadSetup.PINPOINT_Y_REVERSED 
+                ? GoBildaPinpointDriver.EncoderDirection.REVERSED 
+                : GoBildaPinpointDriver.EncoderDirection.FORWARD
+        );
         
         // Reset position to 0,0
         pinpoint.resetPosAndIMU();
@@ -34,10 +54,8 @@ public class PinpointLocalizer implements Localizer {
 
     @Override
     public void update() {
-        // Read latest data from Pinpoint
         pinpoint.update();
         
-        // Get position in inches and heading in radians
         Pose2D pose = pinpoint.getPosition();
         
         currentPose = new Pose2d(
@@ -71,7 +89,7 @@ public class PinpointLocalizer implements Localizer {
     }
     
     /**
-     * Recalibrate the IMU (robot should be stationary)
+     * Recalibrate the IMU (robot must be stationary)
      */
     public void recalibrateIMU() {
         pinpoint.recalibrateIMU();

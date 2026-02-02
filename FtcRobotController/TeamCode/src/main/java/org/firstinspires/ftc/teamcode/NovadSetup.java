@@ -71,6 +71,37 @@ public class NovadSetup {
     /** Device name in your robot configuration */
     public static String PINPOINT_NAME = "pinpoint";
 
+    /** 
+     * Are you using the standard goBilda odometry pods?
+     * If TRUE: uses built-in goBilda 4-bar pod resolution
+     * If FALSE: set PINPOINT_TICKS_PER_MM below for custom encoders
+     */
+    public static boolean PINPOINT_USE_GOBILDA_PODS = true;
+
+    /** 
+     * Custom encoder resolution (only if PINPOINT_USE_GOBILDA_PODS = false)
+     * Ticks per millimeter of travel
+     */
+    public static double PINPOINT_TICKS_PER_MM = 19.89;  // REV Through Bore example
+
+    /**
+     * Pod offsets from robot center IN MILLIMETERS
+     * 
+     * X_OFFSET: Forward = positive, Backward = negative
+     * Y_OFFSET: Left = positive, Right = negative
+     * 
+     * Measure from the CENTER of your robot to the CENTER of each pod.
+     * These values tell the Pinpoint where the pods are mounted.
+     */
+    public static double PINPOINT_X_OFFSET = 0;   // mm forward from center
+    public static double PINPOINT_Y_OFFSET = 0;   // mm left from center
+
+    /** Reverse X pod direction if it counts backwards */
+    public static boolean PINPOINT_X_REVERSED = false;
+
+    /** Reverse Y pod direction if it counts backwards */
+    public static boolean PINPOINT_Y_REVERSED = false;
+
     // ═══════════════════════════════════════════════════════════════════════════
     //                  THREE-WHEEL ODOMETRY CONFIGURATION
     //               (only fill this if USE_THREE_WHEEL = true)
@@ -125,12 +156,14 @@ public class NovadSetup {
     public static double TRANS_P = 0.1;    // Proportional: main correction strength
     public static double TRANS_I = 0.0;    // Integral: fixes steady-state drift (usually 0)
     public static double TRANS_D = 0.01;   // Derivative: dampens oscillation
+    public static double TRANS_F = 0.0;    // Feedforward: constant power to overcome friction
 
     // ─────── HEADING (rotation hold) ───────
 
     public static double HEADING_P = 1.0;  // Proportional
     public static double HEADING_I = 0.0;  // Integral (usually 0)
     public static double HEADING_D = 0.01; // Derivative
+    public static double HEADING_F = 0.0;  // Feedforward: constant power to overcome friction
 
     // ═══════════════════════════════════════════════════════════════════════════
     //                        ADVANCED SETTINGS
