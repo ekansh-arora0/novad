@@ -1,0 +1,74 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'com.novad'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
+    withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+    google()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    // FTC SDK - provided at runtime by FTC app
+    compileOnly 'org.firstinspires.ftc:RobotCore:9.0.1'
+    compileOnly 'org.firstinspires.ftc:Hardware:9.0.1'
+    
+    // FTC Dashboard - optional dependency for tuning
+    compileOnly 'com.acmerobotics.dashboard:dashboard:0.4.15'
+    
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'Novad Defense Library'
+                description = 'Push resistance and defense library for FTC robots'
+                url = 'https://novad.dev'
+                
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'novad'
+                        name = 'Novad Team'
+                    }
+                }
+                
+                scm {
+                    connection = 'scm:git:git://github.com/novad/novad.git'
+                    developerConnection = 'scm:git:ssh://github.com/novad/novad.git'
+                    url = 'https://github.com/novad/novad'
+                }
+            }
+        }
+    }
+}
+
+javadoc {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-Xlint:unchecked' << '-Xlint:deprecation'
+}

@@ -1,0 +1,26 @@
+# Build outputs
+build/
+bin/
+out/
+*.class
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# FTC specific
+FtcRobotController/build/
+FtcRobotController/.gradle/
+
+# Secrets
+*.keystore
+local.properties
