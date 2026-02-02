@@ -33,6 +33,8 @@ code{font-family:'Consolas','Monaco',monospace;color:var(--txt)}
 .ic{background:var(--card);padding:0.15rem 0.4rem;border-radius:4px;color:var(--gold);font-family:'Consolas',monospace}
 .box{background:var(--card);border-left:4px solid var(--crimson);padding:1rem 1.5rem;margin:1rem 0;border-radius:0 8px 8px 0}
 .box.warn{border-color:var(--gold);background:rgba(255,215,0,0.1)}
+.box.tip{border-color:#4CAF50;background:rgba(76,175,80,0.1)}
+.box.important{border-color:#2196F3;background:rgba(33,150,243,0.1)}
 .box h4{margin-top:0}
 table{width:100%;border-collapse:collapse;margin:1rem 0}
 th,td{padding:0.6rem;text-align:left;border-bottom:1px solid #333}
@@ -43,6 +45,14 @@ th{background:var(--crimson);color:var(--gold)}
 .divider{text-align:center;padding:1.5rem 0;color:#333;font-size:1.5rem}
 footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--muted);border-top:3px solid var(--gold)}
 .kw{color:#569cd6}.str{color:#ce9178}.num{color:#b5cea8}.cmt{color:#6a9955}
+.step-nav{display:flex;flex-wrap:wrap;gap:1rem;margin:2rem 0}
+.step-card{flex:1;min-width:200px;background:var(--card);border:1px solid #333;border-radius:8px;padding:1rem;text-decoration:none}
+.step-card:hover{border-color:var(--gold)}
+.step-card h4{color:var(--gold);margin:0 0 0.5rem 0}
+.step-card p{color:var(--muted);margin:0;font-size:0.9rem}
+.step-num{display:inline-block;background:var(--crimson);color:var(--gold);width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:0.8rem;margin-right:0.5rem}
+.prereq{background:rgba(255,215,0,0.1);border:1px solid var(--gold);border-radius:8px;padding:1rem;margin:1rem 0}
+.prereq h4{color:var(--gold);margin:0 0 0.5rem 0}
 @media(max-width:768px){.hero h1{font-size:2.5rem}.nav-links{gap:1rem}}
 </style>
 </head>
@@ -52,9 +62,10 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 <div class="nav-container">
 <a href="#" class="logo">NOVAD</a>
 <div class="nav-links">
-<a href="#quickstart">Quick Start</a>
-<a href="#api">API</a>
+<a href="#introduction">Introduction</a>
+<a href="#installation">Installation</a>
 <a href="#tuning">Tuning</a>
+<a href="#api">API</a>
 <a href="https://github.com/ekansh-arora0/novad" class="github-btn">GitHub</a>
 </div>
 </div>
@@ -64,108 +75,444 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 <h1>NOVAD</h1>
 <p class="subtitle">FTC Defense Library</p>
 <p class="tagline">Stop getting pushed around. Two methods. That's it.</p>
-<a href="#quickstart" class="btn">Get Started</a>
+<a href="#installation" class="btn">Get Started</a>
 <a href="https://github.com/ekansh-arora0/novad" class="btn">View on GitHub</a>
 </section>
 
-<section id="quickstart">
-<h2>Quick Start</h2>
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--                             INTRODUCTION                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
 
-<h3>1. Copy Files to Your Project</h3>
-<p>Copy <span class="ic">NovadSetup.java</span> and the <span class="ic">novad/</span> folder into your TeamCode:</p>
-<pre><code>TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
-├── NovadSetup.java     <span class="cmt">// Your config - edit this!</span>
-├── YourTeleOp.java     <span class="cmt">// Your existing TeleOp</span>
-└── novad/              <span class="cmt">// The library (don't edit)</span>
-    ├── Novad.java
-    ├── Pose2d.java
-    └── ...</code></pre>
+<section id="introduction">
+<h2>Introduction</h2>
 
-<h3>2. Configure NovadSetup.java</h3>
-<p>Set your motor names and choose your odometry:</p>
-<pre><code><span class="cmt">// Motor names - must match your robot config exactly</span>
-<span class="kw">public static</span> String FRONT_LEFT  = <span class="str">"frontLeft"</span>;
-<span class="kw">public static</span> String FRONT_RIGHT = <span class="str">"frontRight"</span>;
-...
+<p>Novad is a defense library for FTC robots. It uses odometry to detect when your robot is being pushed and automatically applies counter-force to resist movement.</p>
 
-<span class="cmt">// Choose ONE odometry system</span>
-<span class="kw">public static boolean</span> USE_PINPOINT = <span class="kw">true</span>;   <span class="cmt">// GoBilda Pinpoint</span>
-<span class="kw">public static boolean</span> USE_THREE_WHEEL = <span class="kw">false</span>; <span class="cmt">// Dead wheels</span></code></pre>
+<h3>How it Works</h3>
+<p>Every loop iteration, Novad:</p>
+<ol>
+<li><strong>Reads your joystick input</strong> - What direction did you command?</li>
+<li><strong>Reads odometry</strong> - What direction did the robot actually move?</li>
+<li><strong>Compares them</strong> - Any difference is an external force (being pushed)</li>
+<li><strong>Applies PIDF correction</strong> - Counter-force to resist the push</li>
+</ol>
 
-<h3>3. Use in Your TeleOp</h3>
-<pre><code><span class="cmt">// In init()</span>
-Novad novad = Novad.create(hardwareMap);
+<p>The result: You drive normally, but your robot resists being pushed around.</p>
 
-<span class="cmt">// In loop() - this replaces your drivetrain.drive() call</span>
-novad.defense(
-    gamepad1.left_stick_x,     <span class="cmt">// strafe</span>
-    -gamepad1.left_stick_y,    <span class="cmt">// forward (negate!)</span>
-    gamepad1.right_stick_x     <span class="cmt">// rotate</span>
-);
+<h3>Two Modes</h3>
 
-<span class="cmt">// Optional: bind lockdown to a button</span>
-<span class="kw">if</span> (gamepad1.a) novad.lockdown();
-<span class="kw">if</span> (gamepad1.b) novad.unlock();</code></pre>
+<div class="step-nav">
+<a href="#defense-mode" class="step-card">
+<h4>🛡️ Defense Mode</h4>
+<p>Drive while resisting pushes. Use <code>novad.defense()</code> instead of your normal drive call.</p>
+</a>
+<a href="#lockdown-mode" class="step-card">
+<h4>🔒 Lockdown Mode</h4>
+<p>Become completely immovable. Use <code>novad.lockdown()</code> when you want to plant.</p>
+</a>
+</div>
 
-<div class="box">
-<h4>That's it!</h4>
-<p>Deploy and test. Your robot now resists being pushed while you drive normally.</p>
+<h3>Requirements</h3>
+<div class="prereq">
+<h4>Prerequisites</h4>
+<ul>
+<li><strong>Mecanum drivetrain</strong> - 4 mecanum wheels</li>
+<li><strong>Odometry</strong> - GoBilda Pinpoint (recommended) or Three Dead Wheels</li>
+<li><strong>FTC SDK 9.0+</strong></li>
+</ul>
 </div>
 </section>
 
 <div class="divider">• • •</div>
 
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--                             INSTALLATION                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<section id="installation">
+<h2>Installation</h2>
+
+<h3>Step 1: Copy Files</h3>
+<p>Copy the following files into your TeamCode folder:</p>
+<pre><code>TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
+├── NovadSetup.java     <span class="cmt">← Your config (edit this!)</span>
+└── novad/              <span class="cmt">← Library folder (don't edit)</span>
+    ├── Novad.java
+    ├── Pose2d.java
+    ├── Localizer.java
+    ├── PinpointLocalizer.java
+    ├── ThreeWheelLocalizer.java
+    ├── PIDController.java
+    └── MecanumDrivetrain.java</code></pre>
+
+<h3>Step 2: Use in Your TeleOp</h3>
+<p>Here's a minimal TeleOp using Novad:</p>
+<pre><code><span class="kw">package</span> org.firstinspires.ftc.teamcode;
+
+<span class="kw">import</span> com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+<span class="kw">import</span> com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+<span class="kw">import</span> org.firstinspires.ftc.teamcode.novad.Novad;
+
+<span class="kw">@TeleOp</span>(name = <span class="str">"TeleOp with Defense"</span>)
+<span class="kw">public class</span> MyTeleOp <span class="kw">extends</span> LinearOpMode {
+
+    @Override
+    <span class="kw">public void</span> runOpMode() {
+        <span class="cmt">// Initialize Novad</span>
+        Novad novad = Novad.create(hardwareMap);
+
+        waitForStart();
+
+        <span class="kw">while</span> (opModeIsActive()) {
+            <span class="cmt">// Drive with defense - this replaces your normal drive call</span>
+            novad.defense(
+                gamepad1.left_stick_x,     <span class="cmt">// strafe</span>
+                -gamepad1.left_stick_y,    <span class="cmt">// forward (Y is inverted!)</span>
+                gamepad1.right_stick_x     <span class="cmt">// rotate</span>
+            );
+
+            <span class="cmt">// Optional: lockdown on button press</span>
+            <span class="kw">if</span> (gamepad1.a) novad.lockdown();
+            <span class="kw">if</span> (gamepad1.b) novad.unlock();
+
+            telemetry.addData(<span class="str">"Locked"</span>, novad.isLocked());
+            telemetry.update();
+        }
+    }
+}</code></pre>
+
+<div class="box warn">
+<h4>⚠️ Important: Negate the Y Axis!</h4>
+<p>Gamepad Y is inverted - pushing UP gives a negative value. You must negate it: <code>-gamepad1.left_stick_y</code></p>
+</div>
+
+<p>Now proceed to <a href="#tuning">Tuning</a> to configure Novad for your robot.</p>
+</section>
+
+<div class="divider">• • •</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--                                TUNING                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<section id="tuning">
+<h2>Tuning</h2>
+
+<p>Tuning Novad has three steps:</p>
+
+<div class="step-nav">
+<a href="#setup" class="step-card">
+<h4><span class="step-num">1</span>Setup</h4>
+<p>Configure motor names and directions.</p>
+</a>
+<a href="#localization" class="step-card">
+<h4><span class="step-num">2</span>Localization</h4>
+<p>Set up your odometry system.</p>
+</a>
+<a href="#pid-tuning" class="step-card">
+<h4><span class="step-num">3</span>PID Tuning</h4>
+<p>Tune the defense strength.</p>
+</a>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+<!--                              STEP 1: SETUP                                   -->
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+
+<h3 id="setup">Step 1: Setup</h3>
+
+<p>In <code>NovadSetup.java</code>, configure your motor names and directions.</p>
+
+<h4>Motor Names</h4>
+<p>These must <strong>exactly match</strong> the names in your robot configuration (Driver Station → Configure Robot).</p>
+
+<pre><code><span class="kw">public static</span> String FRONT_LEFT  = <span class="str">"frontLeft"</span>;
+<span class="kw">public static</span> String FRONT_RIGHT = <span class="str">"frontRight"</span>;
+<span class="kw">public static</span> String BACK_LEFT   = <span class="str">"backLeft"</span>;
+<span class="kw">public static</span> String BACK_RIGHT  = <span class="str">"backRight"</span>;</code></pre>
+
+<h4>Motor Directions</h4>
+<p>Standard mecanum: left side = REVERSE, right side = FORWARD. If a wheel spins the wrong way, flip that motor's direction.</p>
+
+<pre><code><span class="kw">public static</span> Direction FRONT_LEFT_DIR  = Direction.REVERSE;
+<span class="kw">public static</span> Direction FRONT_RIGHT_DIR = Direction.FORWARD;
+<span class="kw">public static</span> Direction BACK_LEFT_DIR   = Direction.REVERSE;
+<span class="kw">public static</span> Direction BACK_RIGHT_DIR  = Direction.FORWARD;</code></pre>
+
+<div class="box tip">
+<h4>💡 Tip: Testing Motor Directions</h4>
+<p>Push the left stick forward. All wheels should spin to move the robot forward. If the robot moves backward, flip all four directions. If only one wheel is wrong, flip just that one.</p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+<!--                           STEP 2: LOCALIZATION                               -->
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+
+<h3 id="localization">Step 2: Localization</h3>
+
+<p>Novad needs to know where your robot is on the field. Choose your localizer below.</p>
+
+<div class="step-nav">
+<a href="#pinpoint" class="step-card">
+<h4>GoBilda Pinpoint</h4>
+<p>Recommended. Self-contained odometry computer. Easiest setup.</p>
+</a>
+<a href="#three-wheel" class="step-card">
+<h4>Three Dead Wheels</h4>
+<p>Traditional setup with three odometry wheels and encoders.</p>
+</a>
+</div>
+
+<!-- ─────────── PINPOINT LOCALIZER ─────────── -->
+
+<h4 id="pinpoint">Pinpoint Localizer</h4>
+
+<div class="prereq">
+<h4>Prerequisites</h4>
+<p>Ensure two odometry pods are connected to the Pinpoint: one parallel to your chassis (forward/X) and one perpendicular (lateral/Y). The Pinpoint should be connected to a REV Hub via I2C (not port 0, which has the IMU).</p>
+</div>
+
+<p>In <code>NovadSetup.java</code>, set:</p>
+
+<pre><code><span class="kw">public static boolean</span> USE_PINPOINT = <span class="kw">true</span>;
+<span class="kw">public static boolean</span> USE_THREE_WHEEL = <span class="kw">false</span>;
+
+<span class="cmt">// Device name in your robot configuration</span>
+<span class="kw">public static</span> String PINPOINT_NAME = <span class="str">"pinpoint"</span>;</code></pre>
+
+<h4>Encoder Resolution</h4>
+<p>If you're using the standard goBilda odometry pods, leave this as-is:</p>
+
+<pre><code><span class="kw">public static boolean</span> PINPOINT_USE_GOBILDA_PODS = <span class="kw">true</span>;</code></pre>
+
+<p>If you're using custom encoders (not goBilda pods), set <code>PINPOINT_USE_GOBILDA_PODS = false</code> and configure:</p>
+
+<pre><code><span class="kw">public static double</span> PINPOINT_TICKS_PER_MM = <span class="num">19.89</span>;  <span class="cmt">// Your encoder's ticks per mm</span></code></pre>
+
+<h4>Pod Offsets</h4>
+<p>You must tell the Pinpoint where your odometry pods are located relative to your robot's center of rotation. <strong>Measure in millimeters.</strong></p>
+
+<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 200'%3E%3Crect fill='%231a1a1a' width='300' height='200'/%3E%3Crect x='100' y='50' width='100' height='100' fill='none' stroke='%23FFD700' stroke-width='2'/%3E%3Ccircle cx='150' cy='100' r='5' fill='%238B0000'/%3E%3Ctext x='160' y='95' fill='%23f5f5f5' font-size='10'>Center</text%3E%3Cline x1='150' y1='100' x2='150' y2='60' stroke='%234CAF50' stroke-width='2' stroke-dasharray='4'/%3E%3Ctext x='155' y='80' fill='%234CAF50' font-size='10'>+X</text%3E%3Cline x1='150' y1='100' x2='115' y2='100' stroke='%232196F3' stroke-width='2' stroke-dasharray='4'/%3E%3Ctext x='120' y='115' fill='%232196F3' font-size='10'>+Y</text%3E%3Crect x='80' y='70' width='8' height='60' fill='%23666' stroke='%23999'/%3E%3Ctext x='60' y='105' fill='%23999' font-size='8'>Y Pod</text%3E%3Crect x='120' y='155' width='60' height='8' fill='%23666' stroke='%23999'/%3E%3Ctext x='140' y='175' fill='%23999' font-size='8'>X Pod</text%3E%3C/svg%3E" alt="Pod Offset Diagram" style="max-width:300px;display:block;margin:1rem auto">
+
+<pre><code><span class="cmt">// Pod offsets from robot center (MILLIMETERS)</span>
+<span class="cmt">// X_OFFSET: Forward = positive, Backward = negative</span>
+<span class="cmt">// Y_OFFSET: Left = positive, Right = negative</span>
+<span class="kw">public static double</span> PINPOINT_X_OFFSET = <span class="num">-50</span>;  <span class="cmt">// Example: X pod is 50mm behind center</span>
+<span class="kw">public static double</span> PINPOINT_Y_OFFSET = <span class="num">120</span>;  <span class="cmt">// Example: Y pod is 120mm left of center</span></code></pre>
+
+<h4>Encoder Directions</h4>
+<p>Test your encoder directions by running your TeleOp and pushing the robot:</p>
+<ol>
+<li>Push the robot <strong>forward</strong> - X should increase</li>
+<li>Push the robot <strong>left</strong> - Y should increase</li>
+</ol>
+
+<p>If either direction is wrong, reverse that encoder:</p>
+
+<pre><code><span class="kw">public static boolean</span> PINPOINT_X_REVERSED = <span class="kw">false</span>;
+<span class="kw">public static boolean</span> PINPOINT_Y_REVERSED = <span class="kw">false</span>;</code></pre>
+
+<div class="box important">
+<h4>📌 Pinpoint Does NOT Need ticks_to_inches, track_width, or center_offset!</h4>
+<p>Unlike three-wheel dead wheel setups, the Pinpoint handles all encoder math internally. You only need to configure:</p>
+<ul>
+<li>Pod offsets (X_OFFSET, Y_OFFSET in mm)</li>
+<li>Encoder resolution (goBilda pods or custom)</li>
+<li>Encoder directions (if counting backwards)</li>
+</ul>
+<p>The Pinpoint computes position, heading, and velocity automatically.</p>
+</div>
+
+<!-- ─────────── THREE WHEEL LOCALIZER ─────────── -->
+
+<h4 id="three-wheel">Three Wheel Localizer</h4>
+
+<div class="prereq">
+<h4>Prerequisites</h4>
+<p>Ensure three odometry pods are connected: two parallel to your chassis length (left and right) and one perpendicular (center/strafe). Encoders should be plugged into motor encoder ports. Ports 0 and 3 on REV Hubs are fastest.</p>
+</div>
+
+<p>In <code>NovadSetup.java</code>, set:</p>
+
+<pre><code><span class="kw">public static boolean</span> USE_PINPOINT = <span class="kw">false</span>;
+<span class="kw">public static boolean</span> USE_THREE_WHEEL = <span class="kw">true</span>;</code></pre>
+
+<h4>Encoder Ports</h4>
+<p>Dead wheel encoders plug into motor encoder ports. Enter the name of the motor whose port each encoder uses:</p>
+
+<pre><code><span class="kw">public static</span> String LEFT_ENCODER   = <span class="str">"frontLeft"</span>;   <span class="cmt">// Left parallel pod</span>
+<span class="kw">public static</span> String RIGHT_ENCODER  = <span class="str">"frontRight"</span>;  <span class="cmt">// Right parallel pod</span>
+<span class="kw">public static</span> String CENTER_ENCODER = <span class="str">"backLeft"</span>;    <span class="cmt">// Perpendicular pod</span></code></pre>
+
+<h4>Ticks to Inches</h4>
+<p>This critical value converts encoder ticks to real-world inches.</p>
+
+<pre><code><span class="cmt">// Formula: (π × wheel_diameter_inches) / encoder_CPR</span>
+<span class="kw">public static double</span> TICKS_TO_INCHES = <span class="num">0.000724</span>;</code></pre>
+
+<table>
+<tr><th>Encoder</th><th>Wheel</th><th>Value</th></tr>
+<tr><td>REV Through Bore (8192 CPR)</td><td>goBilda 48mm</td><td>0.000724</td></tr>
+<tr><td>REV Through Bore (8192 CPR)</td><td>goBilda 60mm</td><td>0.000906</td></tr>
+<tr><td>REV Through Bore (2000 PPR)</td><td>goBilda 48mm</td><td>0.00297</td></tr>
+</table>
+
+<div class="box tip">
+<h4>💡 Tip: Calibrating Ticks to Inches</h4>
+<p>Push your robot exactly 48 inches (2 field tiles). Read the encoder count. Then: <code>TICKS_TO_INCHES = 48.0 / encoder_count</code>. Run multiple times and average for best accuracy.</p>
+</div>
+
+<h4>Physical Measurements</h4>
+<p>Measure these distances on your robot in <strong>inches</strong>:</p>
+
+<pre><code><span class="cmt">// Distance between left and right encoder wheels (center to center)</span>
+<span class="kw">public static double</span> TRACK_WIDTH = <span class="num">14.0</span>;
+
+<span class="cmt">// Distance from robot center to center encoder</span>
+<span class="cmt">// Positive = forward of center, Negative = behind center</span>
+<span class="kw">public static double</span> CENTER_OFFSET = <span class="num">6.0</span>;</code></pre>
+
+<h4>Encoder Directions</h4>
+<p>Test by pushing the robot forward - both parallel encoders should count in the same direction. Push left - center encoder should count positive.</p>
+
+<pre><code><span class="kw">public static boolean</span> LEFT_ENCODER_REVERSED   = <span class="kw">false</span>;
+<span class="kw">public static boolean</span> RIGHT_ENCODER_REVERSED  = <span class="kw">false</span>;
+<span class="kw">public static boolean</span> CENTER_ENCODER_REVERSED = <span class="kw">false</span>;</code></pre>
+
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+<!--                              STEP 3: PID TUNING                              -->
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+
+<h3 id="pid-tuning">Step 3: PID Tuning</h3>
+
+<p>Novad uses PIDF controllers to resist being pushed. There are two controllers:</p>
+<ul>
+<li><strong>Translational PIDF</strong> - Controls X and Y position (resists being pushed sideways/forward/backward)</li>
+<li><strong>Heading PIDF</strong> - Controls rotation (resists being spun)</li>
+</ul>
+
+<h4>PIDF Explained</h4>
+
+<table>
+<tr><th>Term</th><th>What it Does</th><th>If Too High</th><th>If Too Low</th></tr>
+<tr><td><strong>P</strong> (Proportional)</td><td>Main correction strength. Pushes back proportionally to how far you've been pushed.</td><td>Robot oscillates/shakes</td><td>Robot doesn't resist enough</td></tr>
+<tr><td><strong>I</strong> (Integral)</td><td>Fixes slow drift over time. Accumulates error and pushes harder.</td><td>Robot overshoots, oscillates</td><td>Robot slowly drifts</td></tr>
+<tr><td><strong>D</strong> (Derivative)</td><td>Dampens oscillation. Resists rapid changes.</td><td>Robot feels sluggish</td><td>Robot shakes/oscillates</td></tr>
+<tr><td><strong>F</strong> (Feedforward)</td><td>Constant power to overcome static friction.</td><td>Robot jitters when still</td><td>Motors buzz at low corrections</td></tr>
+</table>
+
+<h4>Default Values</h4>
+
+<pre><code><span class="cmt">// Translational (X/Y position)</span>
+<span class="kw">public static double</span> TRANS_P = <span class="num">0.1</span>;
+<span class="kw">public static double</span> TRANS_I = <span class="num">0.0</span>;
+<span class="kw">public static double</span> TRANS_D = <span class="num">0.01</span>;
+<span class="kw">public static double</span> TRANS_F = <span class="num">0.0</span>;
+
+<span class="cmt">// Heading (rotation)</span>
+<span class="kw">public static double</span> HEADING_P = <span class="num">1.0</span>;
+<span class="kw">public static double</span> HEADING_I = <span class="num">0.0</span>;
+<span class="kw">public static double</span> HEADING_D = <span class="num">0.01</span>;
+<span class="kw">public static double</span> HEADING_F = <span class="num">0.0</span>;</code></pre>
+
+<h4>Live Tuning with FTC Dashboard</h4>
+<p>All values in <code>NovadSetup.java</code> are marked with <code>@Config</code>, so you can tune them in real-time:</p>
+<ol>
+<li>Connect your laptop to the robot's WiFi</li>
+<li>Open <a href="http://192.168.43.1:8080/dash">http://192.168.43.1:8080/dash</a></li>
+<li>Find "NovadSetup" in the sidebar</li>
+<li>Adjust values - changes apply instantly!</li>
+<li>Once happy, copy final values back to NovadSetup.java</li>
+</ol>
+
+<h4>Tuning Procedure</h4>
+<div class="box warn">
+<h4>Step-by-Step</h4>
+<ol>
+<li><strong>Start with defaults</strong> - They work for most robots</li>
+<li><strong>Test defense mode</strong> - Drive around while someone pushes you</li>
+<li><strong>If robot oscillates (shakes)</strong> - Decrease P, increase D</li>
+<li><strong>If robot doesn't resist enough</strong> - Increase P</li>
+<li><strong>If motors buzz at low corrections</strong> - Add small F value (0.02-0.05)</li>
+<li><strong>If robot slowly drifts</strong> - Add small I value (0.001)</li>
+<li><strong>Test lockdown</strong> - Should be rock solid. If it shakes, increase D</li>
+</ol>
+</div>
+
+<h4>Other Settings</h4>
+
+<pre><code><span class="cmt">// Maximum correction power (0.0 to 1.0)</span>
+<span class="kw">public static double</span> MAX_POWER = <span class="num">0.8</span>;
+
+<span class="cmt">// Joystick deadzone</span>
+<span class="kw">public static double</span> DEADZONE = <span class="num">0.05</span>;
+
+<span class="cmt">// Field-centric driving (requires good heading from odometry)</span>
+<span class="kw">public static boolean</span> USE_FIELD_CENTRIC = <span class="kw">false</span>;
+
+<span class="cmt">// Brake mode when stopped (helps hold position)</span>
+<span class="kw">public static boolean</span> USE_BRAKE_MODE = <span class="kw">true</span>;</code></pre>
+
+</section>
+
+<div class="divider">• • •</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--                               API REFERENCE                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
 <section id="api">
 <h2>API Reference</h2>
 
-<h3>Core Methods</h3>
+<h3 id="defense-mode">Defense Mode</h3>
 
 <div class="method">
 <div class="method-sig">novad.defense(double strafe, double forward, double rotate)</div>
 <div class="method-desc">
 <p><strong>The main method - call this every loop iteration.</strong></p>
-<p>This drives your robot while actively resisting external pushes. It works by comparing what the driver commanded vs what actually happened (via odometry). If the robot moved differently than commanded, that's an external force - Novad adds counter-force.</p>
+<p>This drives your robot while actively resisting external pushes. It compares driver input vs actual movement (via odometry). Any discrepancy is treated as an external push, and Novad applies counter-force.</p>
 <p><strong>Parameters:</strong></p>
 <ul>
 <li><code>strafe</code> - Left stick X. Range -1 to 1. Positive = right.</li>
-<li><code>forward</code> - Left stick Y. Range -1 to 1. Positive = forward. <strong>Remember to negate gamepad Y!</strong></li>
+<li><code>forward</code> - Left stick Y. Range -1 to 1. Positive = forward. <strong>Negate gamepad Y!</strong></li>
 <li><code>rotate</code> - Right stick X. Range -1 to 1. Positive = turn right.</li>
 </ul>
 <p><strong>What it resists:</strong></p>
 <ul>
-<li>Being pushed sideways ✓</li>
-<li>Being pushed forward/backward ✓</li>
-<li>Being spun/rotated ✓ (heading is protected too!)</li>
+<li>✓ Being pushed sideways</li>
+<li>✓ Being pushed forward/backward</li>
+<li>✓ Being spun/rotated</li>
 </ul>
 </div>
 </div>
+
+<h3 id="lockdown-mode">Lockdown Mode</h3>
 
 <div class="method">
 <div class="method-sig">novad.lockdown()</div>
 <div class="method-desc">
 <p><strong>Makes the robot completely immovable.</strong></p>
-<p>Call this when you want to plant and block. The robot will hold its exact position (X, Y, AND heading) with maximum force. Driver input is ignored while locked.</p>
-<p><strong>Use case:</strong> You're in a good defensive position and want to become an immovable wall. Press a button to activate, and the robot locks in place.</p>
-<p><strong>Note:</strong> Only use when stationary. Calling this while moving will lock at wherever you are at that moment.</p>
+<p>Call this when you want to plant and block. The robot holds its exact position (X, Y, AND heading) with maximum force. Driver input is ignored while locked.</p>
+<p><strong>Use case:</strong> You're in a good defensive position and want to become an immovable wall.</p>
 </div>
 </div>
 
 <div class="method">
 <div class="method-sig">novad.unlock()</div>
 <div class="method-desc">
-<p><strong>Exits lockdown mode, returns to normal defense.</strong></p>
-<p>Call this to release the lock and resume driving with defense active.</p>
+<p><strong>Exits lockdown mode.</strong></p>
+<p>Returns to normal defense mode where you can drive while resisting pushes.</p>
 </div>
 </div>
-
-<h3>Helper Methods</h3>
 
 <div class="method">
 <div class="method-sig">boolean novad.isLocked()</div>
 <div class="method-desc">
-Returns <code>true</code> if currently in lockdown mode. Useful for telemetry or conditional logic.
+Returns <code>true</code> if currently in lockdown mode. Useful for telemetry.
 </div>
 </div>
+
+<h3>Helper Methods</h3>
 
 <div class="method">
 <div class="method-sig">Pose2d novad.getPose()</div>
@@ -177,14 +524,14 @@ Returns current robot position as <code>Pose2d(x, y, heading)</code>. X/Y in inc
 <div class="method">
 <div class="method-sig">void novad.resetHeading()</div>
 <div class="method-desc">
-Resets the heading to zero. Useful at the start of TeleOp if using field-centric driving.
+Resets the heading to zero. Useful at the start of TeleOp for field-centric driving.
 </div>
 </div>
 
-<h3>Static Factory</h3>
+<h3>Factory Method</h3>
 
 <div class="method">
-<div class="method-sig">Novad Novad.create(HardwareMap hardwareMap)</div>
+<div class="method-sig">static Novad Novad.create(HardwareMap hardwareMap)</div>
 <div class="method-desc">
 Creates a Novad instance using settings from <code>NovadSetup.java</code>. Call once in your init.
 </div>
@@ -193,150 +540,60 @@ Creates a Novad instance using settings from <code>NovadSetup.java</code>. Call 
 
 <div class="divider">• • •</div>
 
-<section id="tuning">
-<h2>Tuning Guide</h2>
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--                             TROUBLESHOOTING                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
 
-<h3>How Novad Works (Understanding the System)</h3>
-<p>Novad uses <strong>PID controllers</strong> to resist pushes. Here's the flow:</p>
-<ol>
-<li><strong>Read odometry</strong> - Where did the robot actually move this loop?</li>
-<li><strong>Calculate expected</strong> - Where should it have moved based on joystick input?</li>
-<li><strong>Find discrepancy</strong> - The difference is the external force (being pushed)</li>
-<li><strong>Apply correction</strong> - PID calculates how hard to push back</li>
-</ol>
+<section id="troubleshooting">
+<h2>Troubleshooting</h2>
 
-<p>There are <strong>3 PID controllers</strong>:</p>
+<h3>Robot doesn't resist pushes at all</h3>
 <ul>
-<li><strong>X Controller</strong> - Resists being pushed left/right</li>
-<li><strong>Y Controller</strong> - Resists being pushed forward/backward</li>
-<li><strong>Heading Controller</strong> - Resists being spun/rotated</li>
+<li>Check that odometry is working (use <code>novad.getPose()</code> in telemetry)</li>
+<li>Ensure <code>USE_PINPOINT</code> or <code>USE_THREE_WHEEL</code> is set to <code>true</code></li>
+<li>Increase <code>TRANS_P</code> value</li>
 </ul>
 
-<h3>PIDF Values Explained</h3>
-
-<div class="box">
-<h4>Translational PIDF (TRANS_P, TRANS_I, TRANS_D, TRANS_F)</h4>
-<p>Controls X and Y position resistance.</p>
-<table>
-<tr><th>Value</th><th>Default</th><th>What it does</th></tr>
-<tr><td><code>TRANS_P</code></td><td>0.1</td><td><strong>Proportional</strong> - Main correction strength. Higher = stronger resistance but may oscillate.</td></tr>
-<tr><td><code>TRANS_I</code></td><td>0.0</td><td><strong>Integral</strong> - Fixes slow drift over time. Usually leave at 0.</td></tr>
-<tr><td><code>TRANS_D</code></td><td>0.01</td><td><strong>Derivative</strong> - Dampens oscillation. Increase if robot shakes.</td></tr>
-<tr><td><code>TRANS_F</code></td><td>0.0</td><td><strong>Feedforward</strong> - Constant power to overcome static friction. Helps with motor jitter at low speeds.</td></tr>
-</table>
-</div>
-
-<div class="box">
-<h4>Heading PIDF (HEADING_P, HEADING_I, HEADING_D, HEADING_F)</h4>
-<p>Controls rotation resistance. Prevents opponents from spinning you.</p>
-<table>
-<tr><th>Value</th><th>Default</th><th>What it does</th></tr>
-<tr><td><code>HEADING_P</code></td><td>1.0</td><td><strong>Proportional</strong> - How strongly it resists rotation. Higher = more rigid.</td></tr>
-<tr><td><code>HEADING_I</code></td><td>0.0</td><td><strong>Integral</strong> - Usually leave at 0.</td></tr>
-<tr><td><code>HEADING_D</code></td><td>0.01</td><td><strong>Derivative</strong> - Dampens rotational oscillation.</td></tr>
-<tr><td><code>HEADING_F</code></td><td>0.0</td><td><strong>Feedforward</strong> - Constant power to overcome rotational friction.</td></tr>
-</table>
-</div>
-
-<div class="box warn">
-<h4>When to Use the F Term (Feedforward)</h4>
-<p>The F term adds a constant power in the direction of the error. Use it when:</p>
+<h3>Robot oscillates/shakes</h3>
 <ul>
-<li><strong>Motors jitter</strong> at small corrections (buzzing sound, twitching)</li>
-<li><strong>Robot doesn't quite reach</strong> target position (needs extra push)</li>
-<li>Typical values: 0.02 - 0.1 (start small!)</li>
+<li>Decrease <code>TRANS_P</code></li>
+<li>Increase <code>TRANS_D</code></li>
+<li>Same for heading: decrease <code>HEADING_P</code>, increase <code>HEADING_D</code></li>
 </ul>
-</div>
 
-<h3>Live Tuning with FTC Dashboard</h3>
-<p>All values in <code>NovadSetup.java</code> can be tuned in real-time:</p>
-<ol>
-<li>Connect your laptop to the robot's WiFi</li>
-<li>Open <a href="http://192.168.43.1:8080/dash">http://192.168.43.1:8080/dash</a></li>
-<li>Find "NovadSetup" in the sidebar</li>
-<li>Adjust values - changes apply instantly!</li>
-<li>Once happy, copy final values back to NovadSetup.java</li>
-</ol>
-
-<h3>Tuning Procedure</h3>
-<div class="box warn">
-<h4>Step-by-Step Tuning</h4>
-<ol>
-<li><strong>Start with defaults</strong> - They work for most robots</li>
-<li><strong>Test defense mode</strong> - Drive around, have someone push you</li>
-<li><strong>If robot oscillates (shakes)</strong> - Decrease P, increase D</li>
-<li><strong>If robot doesn't resist enough</strong> - Increase P</li>
-<li><strong>If robot slowly drifts</strong> - Add small I value (0.001)</li>
-<li><strong>Test lockdown</strong> - Should be rock solid. If it shakes, increase D</li>
-</ol>
-</div>
-
-<h3>Other Settings</h3>
-<table>
-<tr><th>Setting</th><th>Default</th><th>Description</th></tr>
-<tr><td><code>MAX_POWER</code></td><td>0.8</td><td>Maximum correction power. Lower = gentler resistance.</td></tr>
-<tr><td><code>USE_FIELD_CENTRIC</code></td><td>false</td><td>Enable field-centric driving. Requires good heading from odometry.</td></tr>
-<tr><td><code>USE_BRAKE_MODE</code></td><td>true</td><td>Motors brake when stopped. Helps hold position.</td></tr>
-</table>
-</section>
-
-<div class="divider">• • •</div>
-
-<section>
-<h2>Odometry Setup</h2>
-
-<h3>GoBilda Pinpoint</h3>
-<p>The Pinpoint requires configuration for your specific pod setup:</p>
-<pre><code><span class="kw">public static boolean</span> USE_PINPOINT = <span class="kw">true</span>;
-<span class="kw">public static</span> String PINPOINT_NAME = <span class="str">"pinpoint"</span>;
-
-<span class="cmt">// Using standard goBilda odometry pods?</span>
-<span class="kw">public static boolean</span> PINPOINT_USE_GOBILDA_PODS = <span class="kw">true</span>;
-
-<span class="cmt">// Pod offsets from robot center (MILLIMETERS!)</span>
-<span class="cmt">// X = forward/back, Y = left/right</span>
-<span class="kw">public static double</span> PINPOINT_X_OFFSET = <span class="num">0</span>;   <span class="cmt">// mm forward from center</span>
-<span class="kw">public static double</span> PINPOINT_Y_OFFSET = <span class="num">0</span>;   <span class="cmt">// mm left from center</span>
-
-<span class="cmt">// Reverse pod directions if counting backwards</span>
-<span class="kw">public static boolean</span> PINPOINT_X_REVERSED = <span class="kw">false</span>;
-<span class="kw">public static boolean</span> PINPOINT_Y_REVERSED = <span class="kw">false</span>;</code></pre>
-
-<div class="box warn">
-<h4>Important: Measure Pod Offsets!</h4>
-<p>The Pinpoint needs to know where the odometry pods are physically located relative to the robot's center. Measure in <strong>millimeters</strong>:</p>
+<h3>Motors buzz/jitter at low corrections</h3>
 <ul>
-<li><strong>X_OFFSET</strong>: Distance forward (+) or backward (-) from robot center</li>
-<li><strong>Y_OFFSET</strong>: Distance left (+) or right (-) from robot center</li>
+<li>Add small <code>TRANS_F</code> value (try 0.03)</li>
+<li>This overcomes static friction</li>
 </ul>
-<p>If using custom encoders (not goBilda pods), set <code>PINPOINT_USE_GOBILDA_PODS = false</code> and configure <code>PINPOINT_TICKS_PER_MM</code>.</p>
-</div>
 
-<h3>Three Dead Wheels</h3>
-<p>More setup required:</p>
-<pre><code><span class="kw">public static boolean</span> USE_THREE_WHEEL = <span class="kw">true</span>;
+<h3>Robot slowly drifts</h3>
+<ul>
+<li>Add small <code>TRANS_I</code> value (try 0.001)</li>
+<li>Check odometry accuracy</li>
+</ul>
 
-<span class="cmt">// Encoder ports (which motor port each encoder plugs into)</span>
-<span class="kw">public static</span> String LEFT_ENCODER   = <span class="str">"frontLeft"</span>;
-<span class="kw">public static</span> String RIGHT_ENCODER  = <span class="str">"frontRight"</span>;
-<span class="kw">public static</span> String CENTER_ENCODER = <span class="str">"backLeft"</span>;
+<h3>Lockdown doesn't hold</h3>
+<ul>
+<li>Increase <code>TRANS_P</code> and <code>HEADING_P</code></li>
+<li>Ensure <code>USE_BRAKE_MODE = true</code></li>
+<li>Check that odometry is accurate</li>
+</ul>
 
-<span class="cmt">// Critical: ticks to inches conversion</span>
-<span class="kw">public static double</span> TICKS_TO_INCHES = <span class="num">0.000724</span>;
+<h3>Position drifts in one direction</h3>
+<ul>
+<li>Check encoder directions (X forward = increase, Y left = increase)</li>
+<li>For Pinpoint: verify <code>PINPOINT_X_REVERSED</code> / <code>PINPOINT_Y_REVERSED</code></li>
+<li>For Three-Wheel: verify encoder reversed settings and offsets</li>
+</ul>
 
-<span class="cmt">// Physical measurements (inches)</span>
-<span class="kw">public static double</span> TRACK_WIDTH = <span class="num">14.0</span>;    <span class="cmt">// Left to right encoder distance</span>
-<span class="kw">public static double</span> CENTER_OFFSET = <span class="num">6.0</span>;  <span class="cmt">// Center encoder to robot center</span></code></pre>
+<h3>Pinpoint not detected</h3>
+<ul>
+<li>Ensure it's connected to I2C port (not port 0, the IMU is there)</li>
+<li>Check the device name matches <code>PINPOINT_NAME</code> exactly</li>
+<li>The Pinpoint must be configured in your robot configuration</li>
+</ul>
 
-<div class="box">
-<h4>Common TICKS_TO_INCHES Values</h4>
-<table>
-<tr><th>Encoder</th><th>Wheel</th><th>Value</th></tr>
-<tr><td>REV Through Bore (8192 CPR)</td><td>goBilda 48mm</td><td>0.000724</td></tr>
-<tr><td>REV Through Bore (8192 CPR)</td><td>goBilda 60mm</td><td>0.000906</td></tr>
-</table>
-<p><strong>Formula:</strong> (π × wheel_diameter_inches) / encoder_CPR</p>
-</div>
 </section>
 
 <footer>
