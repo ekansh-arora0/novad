@@ -1,88 +1,174 @@
-# 🛡️ Novad - FTC Defense Library# Novad - FTC Defense Library
+# 🛡️ Novad# 🛡️ Novad - FTC Defense Library# Novad - FTC Defense Library
 
 
 
-**Stop Getting Pushed Around.****Stop Getting Pushed Around.**
+**Stop getting pushed around.**
 
 
 
-Novad is a defense library for FTC robots that automatically resists being pushed by opponents. With **Predictive Defense**, Novad responds faster than any other defense library—without sacrificing accuracy.Novad is a defense library for FTC robots that prevents opponents from pushing your robot around during matches. Using odometry to detect unwanted movement, Novad automatically applies counter-force to resist defense.
+Novad automatically keeps your FTC robot in place when opponents try to push you.**Stop Getting Pushed Around.****Stop Getting Pushed Around.**
 
 
 
-## ✨ What Makes Novad Different## Features
+## Setup (5 minutes)
 
 
+
+### Step 1: Copy FilesNovad is a defense library for FTC robots that automatically resists being pushed by opponents. With **Predictive Defense**, Novad responds faster than any other defense library—without sacrificing accuracy.Novad is a defense library for FTC robots that prevents opponents from pushing your robot around during matches. Using odometry to detect unwanted movement, Novad automatically applies counter-force to resist defense.
+
+Copy the `novad` folder and these two files into your TeamCode:
+
+```
+
+TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
+
+├── NovadSetup.java     ← Configure your robot here## ✨ What Makes Novad Different## Features
+
+├── NovadTeleOp.java    ← Ready-to-use TeleOp
+
+└── novad/              ← The library (don't edit)
+
+```
 
 ### 🚀 Predictive Defense (NEW!)- 🛡️ **Push Resistance** - Automatically resist when opponents push your robot
 
+### Step 2: Open NovadSetup.java
+
 - 🎯 **Position Lock** - Lock your robot in place for maximum resistance
+
+Fill in YOUR motor names (copy from your Robot Configuration):
 
 Traditional defense libraries react AFTER you've been pushed. **Novad predicts WHERE you'll be pushed and counters BEFORE you get there.**- 🎮 **Driver Override** - Instantly disables when driver touches joysticks
 
-- ⚡ **Smooth Ramp-Up** - Gradual power increase prevents jerky movements
+```java
 
-```- 🔧 **Easy Tuning** - Real-time PID tuning with panels.bylazar.com
+public static String FRONT_LEFT  = "frontLeft";   // ← Your name here- ⚡ **Smooth Ramp-Up** - Gradual power increase prevents jerky movements
 
-Traditional Defense:        Novad Predictive Defense:- 🔌 **Universal** - Works with Pedro Pathing, RoadRunner, or any odometry
+public static String FRONT_RIGHT = "frontRight";  // ← Your name here
 
-                           
+public static String BACK_LEFT   = "backLeft";    // ← Your name here```- 🔧 **Easy Tuning** - Real-time PID tuning with panels.bylazar.com
 
-Push → Movement → Detect → │ Push → Accel Detect → Predict → Counter## Quick Start
+public static String BACK_RIGHT  = "backRight";   // ← Your name here
 
-                  Counter  │                       
+```Traditional Defense:        Novad Predictive Defense:- 🔌 **Universal** - Works with Pedro Pathing, RoadRunner, or any odometry
 
-                           │ (Counter happens BEFORE movement!)### 1. Add Dependency
 
-```
 
-```gradle
+### Step 3: Pick Your Odometry                           
+
+
+
+**Using GoBilda Pinpoint?**Push → Movement → Detect → │ Push → Accel Detect → Predict → Counter## Quick Start
+
+```java
+
+public static boolean USE_PINPOINT = true;                  Counter  │                       
+
+public static String PINPOINT_NAME = "pinpoint";  // Name in Robot Config
+
+```                           │ (Counter happens BEFORE movement!)### 1. Add Dependency
+
+
+
+**Using Three Dead Wheels?**```
+
+```java
+
+public static boolean USE_PINPOINT = false;```gradle
+
+public static boolean USE_THREE_WHEEL = true;
 
 **How it works:**// In build.gradle
 
-1. Monitors acceleration (sudden change = push detected)repositories {
+// Which motor ports are your encoders plugged into?
 
-2. Predicts position X milliseconds in the future    maven { url 'https://jitpack.io' }
+public static String LEFT_ENCODER_PORT   = "frontLeft";1. Monitors acceleration (sudden change = push detected)repositories {
 
-3. Applies counter-force immediately}
+public static String RIGHT_ENCODER_PORT  = "frontRight";
 
-4. Result: **50ms+ faster response** without sacrificing accuracy
-
-dependencies {
-
-## 🎯 Features    implementation 'com.github.novad:novad:1.0.0'
-
-}
-
-- 🚀 **Predictive Defense** - Counter pushes before they happen```
-
-- 🛡️ **Push Resistance** - Automatically resist when opponents push your robot
-
-- 🔒 **Position Lock** - Lock your robot in place for maximum resistance### 2. Configure Your Robot
-
-- 🎮 **Driver Override** - Instantly disables when driver touches joysticks
-
-- ⚡ **Instant Boost** - Multiplies response when impact detectedEdit `NovadConstants.java`:
-
-- 📊 **FTC Dashboard** - Live tune ALL values in real-time
-
-- 📍 **Pinpoint Support** - Works with GoBilda Pinpoint odometry```java
-
-public static final DriveType DRIVE_TYPE = DriveType.MECANUM_4_MOTOR;
-
-## 📦 Installationpublic static final OdometryType ODOMETRY_TYPE = OdometryType.THREE_WHEEL;
+public static String CENTER_ENCODER_PORT = "backLeft";2. Predicts position X milliseconds in the future    maven { url 'https://jitpack.io' }
 
 ```
 
+3. Applies counter-force immediately}
+
+### Step 4: Deploy & Drive
+
+4. Result: **50ms+ faster response** without sacrificing accuracy
+
+1. Deploy to robot
+
+2. Select **"Novad TeleOp"** on Driver Stationdependencies {
+
+3. Drive! 🎮
+
+## 🎯 Features    implementation 'com.github.novad:novad:1.0.0'
+
+## Controls
+
+}
+
+| Button | Action |
+
+|--------|--------|- 🚀 **Predictive Defense** - Counter pushes before they happen```
+
+| Left Stick | Drive/Strafe |
+
+| Right Stick | Rotate |- 🛡️ **Push Resistance** - Automatically resist when opponents push your robot
+
+| A | Toggle position lock (max defense) |
+
+| B | Toggle defense on/off |- 🔒 **Position Lock** - Lock your robot in place for maximum resistance### 2. Configure Your Robot
+
+
+
+## Tuning- 🎮 **Driver Override** - Instantly disables when driver touches joysticks
+
+
+
+Open FTC Dashboard while running:- ⚡ **Instant Boost** - Multiplies response when impact detectedEdit `NovadConstants.java`:
+
+- **On robot WiFi:** `http://192.168.43.1:8080/dash`
+
+- **Or use:** [panels.bylazar.com](https://panels.bylazar.com)- 📊 **FTC Dashboard** - Live tune ALL values in real-time
+
+
+
+Find `NovadSetup` in the sidebar and adjust:- 📍 **Pinpoint Support** - Works with GoBilda Pinpoint odometry```java
+
+- `POSITION_P` - How hard it resists being pushed (default: 0.046)
+
+- `HEADING_P` - How hard it resists rotation (default: 0.67)public static final DriveType DRIVE_TYPE = DriveType.MECANUM_4_MOTOR;
+
+
+
+## Troubleshooting## 📦 Installationpublic static final OdometryType ODOMETRY_TYPE = OdometryType.THREE_WHEEL;
+
+
+
+**Robot drives backwards?**```
+
+→ Flip the `_REVERSED` values in NovadSetup.java
+
 1. **Clone or download this repo**
 
-2. **Copy the `novad` folder** to your TeamCode:### 3. Use in TeleOp
+**Robot doesn't resist pushes?**
 
-   ```
+→ Increase `POSITION_P` in Dashboard2. **Copy the `novad` folder** to your TeamCode:### 3. Use in TeleOp
+
+
+
+**Robot oscillates/shakes?**   ```
+
+→ Decrease `POSITION_P` or increase `POSITION_D`
 
    TeamCode/src/main/java/org/firstinspires/ftc/teamcode/novad/```java
 
+---
+
    ```// Initialize
+
+MIT License • Built for FTC teams 🤖
 
 3. **Copy `NovadConstants.java` and `NovadTeleOp.java`** to TeamCode rootNovad novad = new Novad(odometry, drivetrain);
 

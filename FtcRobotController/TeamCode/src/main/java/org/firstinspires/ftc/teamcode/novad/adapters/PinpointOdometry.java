@@ -52,6 +52,13 @@ public class PinpointOdometry implements NovadOdometry {
     public PinpointOdometry(HardwareMap hardwareMap) {
         this(hardwareMap, "pinpoint", 0, 0, 48, 8192);
     }
+    
+    /**
+     * Create Pinpoint odometry with just device name (most common usage)
+     */
+    public PinpointOdometry(HardwareMap hardwareMap, String deviceName) {
+        this(hardwareMap, deviceName, 0, 0, 48, 8192);
+    }
 
     /**
      * Create Pinpoint odometry with custom configuration

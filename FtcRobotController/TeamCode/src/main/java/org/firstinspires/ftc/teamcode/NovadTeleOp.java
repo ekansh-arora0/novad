@@ -11,222 +11,148 @@ import org.firstinspires.ftc.teamcode.novad.Novad;
 import org.firstinspires.ftc.teamcode.novad.adapters.MecanumDriveAdapter;
 import org.firstinspires.ftc.teamcode.novad.adapters.PinpointOdometry;
 import org.firstinspires.ftc.teamcode.novad.adapters.ThreeWheelOdometry;
-import org.firstinspires.ftc.teamcode.novad.config.NovadConfig;
-import org.firstinspires.ftc.teamcode.novad.config.MotorDirection;
-import org.firstinspires.ftc.teamcode.novad.config.PIDFCoefficients;
 import org.firstinspires.ftc.teamcode.novad.interfaces.NovadOdometry;
 
 /**
- * ═══════════════════════════════════════════════════════════════════════════════
- * NOVAD TELEOP EXAMPLE
- * ═══════════════════════════════════════════════════════════════════════════════
- * 
- * Complete working TeleOp with Novad defense. Uses values from NovadConstants.
- * 
- * All PIDF values are tunable live via FTC Dashboard!
- * Connect to: http://192.168.43.1:8080/dash OR https://panels.bylazar.com
- * 
- * CONTROLS:
- * - Left Stick: Drive (forward/strafe)
- * - Right Stick: Rotate
- * - A Button: Toggle position lock
- * - B Button: Toggle defense on/off
- * - X Button: Recalibrate IMU (if using Pinpoint)
+ * ╔═══════════════════════════════════════════════════════════════════════════════╗
+ * ║                         NOVAD TELEOP                                          ║
+ * ║                                                                               ║
+ * ║  This is ready to use! Just configure NovadSetup.java first.                  ║
+ * ║                                                                               ║
+ * ║  CONTROLS:                                                                    ║
+ * ║  • Left Stick  = Drive/Strafe                                                 ║
+ * ║  • Right Stick = Rotate                                                       ║
+ * ║  • A Button    = Toggle position lock (max defense)                           ║
+ * ║  • B Button    = Toggle defense on/off                                        ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════╝
  */
 @TeleOp(name = "Novad TeleOp", group = "Novad")
 public class NovadTeleOp extends LinearOpMode {
 
     @Override
-    public void runOpMode() throws InterruptedException {
-        // Setup FTC Dashboard telemetry
+    public void runOpMode() {
+        // FTC Dashboard telemetry
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         // ═══════════════════════════════════════════════════════════════════════
-        // HARDWARE SETUP (using NovadConstants)
+        // MOTORS - Uses names from NovadSetup
         // ═══════════════════════════════════════════════════════════════════════
         
-        DcMotor frontLeft = hardwareMap.get(DcMotor.class, NovadConstants.LEFT_FRONT_MOTOR);
-        DcMotor frontRight = hardwareMap.get(DcMotor.class, NovadConstants.RIGHT_FRONT_MOTOR);
-        DcMotor backLeft = hardwareMap.get(DcMotor.class, NovadConstants.LEFT_REAR_MOTOR);
-        DcMotor backRight = hardwareMap.get(DcMotor.class, NovadConstants.RIGHT_REAR_MOTOR);
+        DcMotor frontLeft  = hardwareMap.get(DcMotor.class, NovadSetup.FRONT_LEFT);
+        DcMotor frontRight = hardwareMap.get(DcMotor.class, NovadSetup.FRONT_RIGHT);
+        DcMotor backLeft   = hardwareMap.get(DcMotor.class, NovadSetup.BACK_LEFT);
+        DcMotor backRight  = hardwareMap.get(DcMotor.class, NovadSetup.BACK_RIGHT);
 
-        // Set motor directions from constants
-        frontLeft.setDirection(NovadConstants.LEFT_FRONT_REVERSED ? 
+        // Set directions from NovadSetup
+        frontLeft.setDirection(NovadSetup.FRONT_LEFT_REVERSED ? 
             DcMotorSimple.Direction.REVERSE : DcMotorSimple.Direction.FORWARD);
-        backLeft.setDirection(NovadConstants.LEFT_REAR_REVERSED ? 
+        frontRight.setDirection(NovadSetup.FRONT_RIGHT_REVERSED ? 
             DcMotorSimple.Direction.REVERSE : DcMotorSimple.Direction.FORWARD);
-        frontRight.setDirection(NovadConstants.RIGHT_FRONT_REVERSED ? 
+        backLeft.setDirection(NovadSetup.BACK_LEFT_REVERSED ? 
             DcMotorSimple.Direction.REVERSE : DcMotorSimple.Direction.FORWARD);
-        backRight.setDirection(NovadConstants.RIGHT_REAR_REVERSED ? 
+        backRight.setDirection(NovadSetup.BACK_RIGHT_REVERSED ? 
             DcMotorSimple.Direction.REVERSE : DcMotorSimple.Direction.FORWARD);
 
         // ═══════════════════════════════════════════════════════════════════════
-        // ODOMETRY SETUP (auto-selects based on NovadConstants.ODOMETRY_TYPE)
+        // ODOMETRY - Auto-selects based on NovadSetup
         // ═══════════════════════════════════════════════════════════════════════
         
         NovadOdometry odometry;
+        String odomType;
         
-        switch (NovadConstants.ODOMETRY_TYPE) {
-            case PINPOINT:
-                odometry = new PinpointOdometry(
-                    hardwareMap,
-                    NovadConstants.PINPOINT_DEVICE_NAME,
-                    NovadConstants.PINPOINT_X_OFFSET_MM,
-                    NovadConstants.PINPOINT_Y_OFFSET_MM,
-                    NovadConstants.PINPOINT_WHEEL_DIAMETER_MM,
-                    NovadConstants.PINPOINT_ENCODER_RESOLUTION
-                );
-                telemetry.addLine("Using: Pinpoint Odometry");
-                break;
-                
-            case THREE_WHEEL:
-            default:
-                odometry = new ThreeWheelOdometry(
-                    hardwareMap,
-                    NovadConstants.LEFT_ENCODER_MOTOR_PORT,
-                    NovadConstants.RIGHT_ENCODER_MOTOR_PORT,
-                    NovadConstants.CENTER_ENCODER_MOTOR_PORT,
-                    NovadConstants.LEFT_ENCODER_REVERSED,
-                    NovadConstants.RIGHT_ENCODER_REVERSED,
-                    NovadConstants.CENTER_ENCODER_REVERSED,
-                    NovadConstants.DEAD_WHEEL_DIAMETER_INCHES,
-                    NovadConstants.DEAD_WHEEL_TICKS_PER_REV,
-                    NovadConstants.TRACK_WIDTH_INCHES,
-                    NovadConstants.FORWARD_OFFSET_INCHES
-                );
-                telemetry.addLine("Using: Three-Wheel Odometry");
-                break;
+        if (NovadSetup.USE_PINPOINT) {
+            odometry = new PinpointOdometry(hardwareMap, NovadSetup.PINPOINT_NAME);
+            odomType = "Pinpoint";
+        } else {
+            odometry = new ThreeWheelOdometry(
+                hardwareMap,
+                NovadSetup.LEFT_ENCODER_PORT,
+                NovadSetup.RIGHT_ENCODER_PORT,
+                NovadSetup.CENTER_ENCODER_PORT,
+                NovadSetup.LEFT_ENCODER_REVERSED,
+                NovadSetup.RIGHT_ENCODER_REVERSED,
+                NovadSetup.CENTER_ENCODER_REVERSED,
+                NovadSetup.WHEEL_DIAMETER_INCHES,
+                8192, // Encoder ticks
+                NovadSetup.TRACK_WIDTH_INCHES,
+                NovadSetup.FORWARD_OFFSET_INCHES
+            );
+            odomType = "Three-Wheel";
         }
 
         // ═══════════════════════════════════════════════════════════════════════
-        // DRIVETRAIN ADAPTER
+        // NOVAD
         // ═══════════════════════════════════════════════════════════════════════
         
         MecanumDriveAdapter drivetrain = new MecanumDriveAdapter(
             frontLeft, frontRight, backLeft, backRight
         );
+        
+        Novad novad = new Novad(odometry, drivetrain);
 
         // ═══════════════════════════════════════════════════════════════════════
-        // NOVAD CONFIG (built from NovadConstants)
+        // READY
         // ═══════════════════════════════════════════════════════════════════════
         
-        NovadConfig config = new NovadConfig.Builder()
-            .leftFrontMotorName(NovadConstants.LEFT_FRONT_MOTOR)
-            .leftRearMotorName(NovadConstants.LEFT_REAR_MOTOR)
-            .rightFrontMotorName(NovadConstants.RIGHT_FRONT_MOTOR)
-            .rightRearMotorName(NovadConstants.RIGHT_REAR_MOTOR)
-            .leftFrontMotorDirection(NovadConstants.LEFT_FRONT_REVERSED ? MotorDirection.REVERSE : MotorDirection.FORWARD)
-            .leftRearMotorDirection(NovadConstants.LEFT_REAR_REVERSED ? MotorDirection.REVERSE : MotorDirection.FORWARD)
-            .rightFrontMotorDirection(NovadConstants.RIGHT_FRONT_REVERSED ? MotorDirection.REVERSE : MotorDirection.FORWARD)
-            .rightRearMotorDirection(NovadConstants.RIGHT_REAR_REVERSED ? MotorDirection.REVERSE : MotorDirection.FORWARD)
-            .translationalPIDFCoefficients(new PIDFCoefficients(
-                NovadConstants.TRANS_P, NovadConstants.TRANS_I, 
-                NovadConstants.TRANS_D, NovadConstants.TRANS_F))
-            .headingPIDFCoefficients(new PIDFCoefficients(
-                NovadConstants.HEADING_P, NovadConstants.HEADING_I, 
-                NovadConstants.HEADING_D, NovadConstants.HEADING_F))
-            .velocityPIDFCoefficients(new PIDFCoefficients(
-                NovadConstants.VEL_P, NovadConstants.VEL_I, 
-                NovadConstants.VEL_D, NovadConstants.VEL_F))
-            .movementThreshold(NovadConstants.MOVEMENT_THRESHOLD)
-            .headingThreshold(Math.toRadians(NovadConstants.HEADING_THRESHOLD_DEGREES))
-            .maxCorrectionPower(NovadConstants.MAX_CORRECTION_POWER)
-            .driverOverrideThreshold(NovadConstants.DRIVER_DEADZONE)
-            .rampUpTime(NovadConstants.RAMP_UP_TIME)
-            .maxIntegral(NovadConstants.MAX_INTEGRAL)
-            .build();
-
-        // ═══════════════════════════════════════════════════════════════════════
-        // CREATE NOVAD
-        // ═══════════════════════════════════════════════════════════════════════
-        
-        Novad novad = new Novad(odometry, drivetrain, config);
-        
-        // Configure predictive defense
-        novad.setPredictiveEnabled(NovadConstants.PREDICTIVE_ENABLED);
-        novad.setPredictionLookahead(NovadConstants.PREDICTION_LOOKAHEAD_MS);
-        novad.setAccelTriggerThreshold(NovadConstants.ACCEL_TRIGGER_THRESHOLD);
-        novad.setInstantBoostMultiplier(NovadConstants.INSTANT_BOOST_MULTIPLIER);
-
-        // ═══════════════════════════════════════════════════════════════════════
-        // INIT DISPLAY
-        // ═══════════════════════════════════════════════════════════════════════
-        
+        telemetry.addLine("════════════════════════════════");
+        telemetry.addLine("    🛡️ NOVAD READY");
+        telemetry.addLine("════════════════════════════════");
         telemetry.addLine("");
-        telemetry.addLine("╔═══════════════════════════════════════╗");
-        telemetry.addLine("║         NOVAD DEFENSE READY           ║");
-        telemetry.addLine("╠═══════════════════════════════════════╣");
-        telemetry.addLine("║ A = Toggle Position Lock              ║");
-        telemetry.addLine("║ B = Toggle Defense On/Off             ║");
-        telemetry.addLine("║ X = Recalibrate IMU                   ║");
-        telemetry.addLine("╠═══════════════════════════════════════╣");
-        telemetry.addLine("║ Tune values in FTC Dashboard!         ║");
-        telemetry.addLine("╚═══════════════════════════════════════╝");
+        telemetry.addData("Odometry", odomType);
+        telemetry.addLine("");
+        telemetry.addLine("Controls:");
+        telemetry.addLine("  A = Toggle Position Lock");
+        telemetry.addLine("  B = Toggle Defense");
+        telemetry.addLine("");
+        telemetry.addLine("Tune values in FTC Dashboard!");
         telemetry.update();
 
         waitForStart();
 
-        // Track button states for edge detection
-        boolean lastA = false, lastB = false, lastX = false;
-        boolean defenseEnabled = true;
+        boolean lastA = false, lastB = false;
+        boolean defenseOn = true;
 
         while (opModeIsActive()) {
             // ═══════════════════════════════════════════════════════════════════
             // UPDATE PID FROM DASHBOARD (live tuning!)
             // ═══════════════════════════════════════════════════════════════════
             
-            novad.setPositionPID(NovadConstants.TRANS_P, NovadConstants.TRANS_I, NovadConstants.TRANS_D);
-            novad.setHeadingPID(NovadConstants.HEADING_P, NovadConstants.HEADING_I, NovadConstants.HEADING_D);
-            novad.setVelocityPID(NovadConstants.VEL_P, NovadConstants.VEL_I, NovadConstants.VEL_D);
-            
-            // Update predictive defense settings
-            novad.setPredictiveEnabled(NovadConstants.PREDICTIVE_ENABLED);
-            novad.setPredictionLookahead(NovadConstants.PREDICTION_LOOKAHEAD_MS);
-            novad.setAccelTriggerThreshold(NovadConstants.ACCEL_TRIGGER_THRESHOLD);
-            novad.setInstantBoostMultiplier(NovadConstants.INSTANT_BOOST_MULTIPLIER);
+            novad.setPositionPID(NovadSetup.POSITION_P, NovadSetup.POSITION_I, NovadSetup.POSITION_D);
+            novad.setHeadingPID(NovadSetup.HEADING_P, NovadSetup.HEADING_I, NovadSetup.HEADING_D);
+            novad.setPredictiveEnabled(NovadSetup.PREDICTIVE_ENABLED);
+            novad.setPredictionLookahead(NovadSetup.PREDICTION_MS);
+            novad.setInstantBoostMultiplier(NovadSetup.BOOST_MULTIPLIER);
 
             // ═══════════════════════════════════════════════════════════════════
-            // BUTTON HANDLING
+            // BUTTONS
             // ═══════════════════════════════════════════════════════════════════
             
-            // A button - toggle position lock
+            // A = Toggle position lock
             if (gamepad1.a && !lastA) {
                 novad.togglePositionLock();
             }
             lastA = gamepad1.a;
             
-            // B button - toggle defense
+            // B = Toggle defense
             if (gamepad1.b && !lastB) {
-                defenseEnabled = !defenseEnabled;
-                if (defenseEnabled) {
-                    novad.enable();
-                } else {
-                    novad.disable();
-                }
+                defenseOn = !defenseOn;
+                if (!defenseOn) novad.disable();
             }
             lastB = gamepad1.b;
-            
-            // X button - recalibrate IMU (Pinpoint only)
-            if (gamepad1.x && !lastX) {
-                if (odometry instanceof PinpointOdometry) {
-                    ((PinpointOdometry) odometry).recalibrateIMU();
-                    telemetry.addLine(">>> IMU Recalibrating...");
-                }
-            }
-            lastX = gamepad1.x;
 
             // ═══════════════════════════════════════════════════════════════════
-            // NOVAD DEFENSE - One line does it all!
+            // DRIVE
             // ═══════════════════════════════════════════════════════════════════
             
-            if (defenseEnabled) {
+            if (defenseOn) {
+                // Novad handles everything!
                 novad.defense(
-                    gamepad1.left_stick_x,     // Strafe
-                    -gamepad1.left_stick_y,    // Forward (inverted)
-                    gamepad1.right_stick_x     // Rotate
+                    gamepad1.left_stick_x,
+                    -gamepad1.left_stick_y,
+                    gamepad1.right_stick_x
                 );
             } else {
-                // Manual drive when defense disabled
+                // Manual drive
                 drivetrain.drive(
                     -gamepad1.left_stick_y,
                     gamepad1.left_stick_x,
@@ -238,30 +164,14 @@ public class NovadTeleOp extends LinearOpMode {
             // TELEMETRY
             // ═══════════════════════════════════════════════════════════════════
             
-            telemetry.addLine("═══ NOVAD STATUS ═══");
-            telemetry.addData("Defense", defenseEnabled ? "🟢 ENABLED" : "🔴 DISABLED");
-            telemetry.addData("Position Lock", novad.isPositionLocked() ? "🔒 LOCKED" : "🔓 UNLOCKED");
-            
+            telemetry.addLine("════════ NOVAD ════════");
+            telemetry.addData("Defense", defenseOn ? "🟢 ON" : "🔴 OFF");
+            telemetry.addData("Position Lock", novad.isPositionLocked() ? "🔒 LOCKED" : "🔓 FREE");
+            telemetry.addData("Predictive", novad.isPredictiveActive() ? "⚡ ACTIVE" : "—");
             telemetry.addLine("");
-            telemetry.addLine("═══ PREDICTIVE DEFENSE ═══");
-            telemetry.addData("Predictive", NovadConstants.PREDICTIVE_ENABLED ? "🟢 ON" : "⚪ OFF");
-            telemetry.addData("Boost Active", novad.isPredictiveActive() ? "⚡ YES" : "—");
-            telemetry.addData("Boost Multiplier", "%.2f", novad.getCurrentBoostMultiplier());
-            telemetry.addData("Acceleration", "%.1f in/s²", novad.getAccelerationMagnitude());
-            
-            telemetry.addLine("");
-            telemetry.addLine("═══ POSITION ═══");
-            telemetry.addData("X", "%.2f in", odometry.getPosition().x);
-            telemetry.addData("Y", "%.2f in", odometry.getPosition().y);
-            telemetry.addData("Heading", "%.1f°", Math.toDegrees(odometry.getHeading()));
-            
-            telemetry.addLine("");
-            telemetry.addLine("═══ PID VALUES (tune in Dashboard!) ═══");
-            telemetry.addData("Trans P/I/D", "%.3f / %.3f / %.3f", 
-                NovadConstants.TRANS_P, NovadConstants.TRANS_I, NovadConstants.TRANS_D);
-            telemetry.addData("Heading P/I/D", "%.3f / %.3f / %.3f", 
-                NovadConstants.HEADING_P, NovadConstants.HEADING_I, NovadConstants.HEADING_D);
-            
+            telemetry.addData("X", "%.1f in", odometry.getPosition().x);
+            telemetry.addData("Y", "%.1f in", odometry.getPosition().y);
+            telemetry.addData("Heading", "%.0f°", Math.toDegrees(odometry.getHeading()));
             telemetry.update();
         }
     }
