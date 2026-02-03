@@ -47,6 +47,13 @@ public class PIDController {
     }
 
     /**
+     * Update PIDF gains including feedforward (alias for setGains)
+     */
+    public void setPIDF(double kP, double kI, double kD, double kF) {
+        setGains(kP, kI, kD, kF);
+    }
+
+    /**
      * Calculate PIDF output
      * 
      * @param error Current error (target - actual)

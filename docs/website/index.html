@@ -133,24 +133,64 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 <h2>Installation</h2>
 
 <h3>Step 1: Copy Files</h3>
-<p>Copy the following files into your TeamCode folder:</p>
+<p>Copy the <code>novad</code> folder into your TeamCode:</p>
 <pre><code>TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
-├── NovadSetup.java     <span class="cmt">← Your config (edit this!)</span>
-└── novad/              <span class="cmt">← Library folder (don't edit)</span>
+└── novad/
+    ├── Constants.java       <span class="cmt">← Your config (edit this!)</span>
     ├── Novad.java
-    ├── Pose2d.java
-    ├── Localizer.java
-    ├── PinpointLocalizer.java
-    ├── ThreeWheelLocalizer.java
+    ├── NovadBuilder.java
+    ├── MecanumConstants.java
+    ├── PinpointConstants.java
+    ├── DefenseSettings.java
+    ├── PIDFCoefficients.java
     ├── PIDController.java
-    └── MecanumDrivetrain.java</code></pre>
+    └── Pose2d.java</code></pre>
 
-<h3>Step 2: Use in Your TeleOp</h3>
-<p>Here's a minimal TeleOp using Novad:</p>
+<h3>Step 2: Configure Constants.java</h3>
+<p>Edit <code>Constants.java</code> to match your robot. It looks just like Pedro Pathing's constants:</p>
+<pre><code><span class="kw">public class</span> Constants {
+
+    <span class="cmt">// PIDF values (copy from Pedro if you have them!)</span>
+    <span class="kw">public static</span> PIDFCoefficients translationalPIDF = 
+        <span class="kw">new</span> PIDFCoefficients(<span class="num">0.065</span>, <span class="num">0</span>, <span class="num">0.033</span>, <span class="num">0.001</span>);
+    <span class="kw">public static</span> PIDFCoefficients headingPIDF = 
+        <span class="kw">new</span> PIDFCoefficients(<span class="num">1</span>, <span class="num">0</span>, <span class="num">0</span>, <span class="num">0.01</span>);
+
+    <span class="cmt">// Drivetrain (same format as Pedro!)</span>
+    <span class="kw">public static</span> MecanumConstants driveConstants = <span class="kw">new</span> MecanumConstants()
+        .leftFrontMotorName(<span class="str">"front_left_drive"</span>)
+        .leftRearMotorName(<span class="str">"back_left_drive"</span>)
+        .rightFrontMotorName(<span class="str">"front_right_drive"</span>)
+        .rightRearMotorName(<span class="str">"back_right_drive"</span>)
+        .leftFrontMotorDirection(Direction.FORWARD)
+        .leftRearMotorDirection(Direction.FORWARD)
+        .rightFrontMotorDirection(Direction.FORWARD)
+        .rightRearMotorDirection(Direction.FORWARD);
+
+    <span class="cmt">// Pinpoint (same format as Pedro!)</span>
+    <span class="kw">public static</span> PinpointConstants localizerConstants = <span class="kw">new</span> PinpointConstants()
+        .hardwareMapName(<span class="str">"pinpoint"</span>)
+        .encoderResolution(GoBildaOdometryPods.goBILDA_4_BAR_POD)
+        .forwardEncoderDirection(EncoderDirection.FORWARD)
+        .strafeEncoderDirection(EncoderDirection.FORWARD);
+
+    <span class="cmt">// Create Novad</span>
+    <span class="kw">public static</span> Novad createNovad(HardwareMap hardwareMap) {
+        <span class="kw">return new</span> NovadBuilder(hardwareMap)
+            .mecanumDrivetrain(driveConstants)
+            .pinpointLocalizer(localizerConstants)
+            .translationalPIDF(translationalPIDF)
+            .headingPIDF(headingPIDF)
+            .build();
+    }
+}</code></pre>
+
+<h3>Step 3: Use in Your TeleOp</h3>
 <pre><code><span class="kw">package</span> org.firstinspires.ftc.teamcode;
 
 <span class="kw">import</span> com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 <span class="kw">import</span> com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+<span class="kw">import</span> org.firstinspires.ftc.teamcode.novad.Constants;
 <span class="kw">import</span> org.firstinspires.ftc.teamcode.novad.Novad;
 
 <span class="kw">@TeleOp</span>(name = <span class="str">"TeleOp with Defense"</span>)
@@ -158,20 +198,20 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 
     @Override
     <span class="kw">public void</span> runOpMode() {
-        <span class="cmt">// Initialize Novad</span>
-        Novad novad = Novad.create(hardwareMap);
+        <span class="cmt">// Initialize Novad (just like Pedro's createFollower!)</span>
+        Novad novad = Constants.createNovad(hardwareMap);
 
         waitForStart();
 
         <span class="kw">while</span> (opModeIsActive()) {
-            <span class="cmt">// Drive with defense - this replaces your normal drive call</span>
+            <span class="cmt">// Drive with defense</span>
             novad.defense(
                 gamepad1.left_stick_x,     <span class="cmt">// strafe</span>
-                -gamepad1.left_stick_y,    <span class="cmt">// forward (Y is inverted!)</span>
+                -gamepad1.left_stick_y,    <span class="cmt">// forward (negate Y!)</span>
                 gamepad1.right_stick_x     <span class="cmt">// rotate</span>
             );
 
-            <span class="cmt">// Optional: lockdown on button press</span>
+            <span class="cmt">// Optional: lockdown on button</span>
             <span class="kw">if</span> (gamepad1.a) novad.lockdown();
             <span class="kw">if</span> (gamepad1.b) novad.unlock();
 
@@ -185,8 +225,6 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 <h4>⚠️ Important: Negate the Y Axis!</h4>
 <p>Gamepad Y is inverted - pushing UP gives a negative value. You must negate it: <code>-gamepad1.left_stick_y</code></p>
 </div>
-
-<p>Now proceed to <a href="#tuning">Tuning</a> to configure Novad for your robot.</p>
 </section>
 
 <div class="divider">• • •</div>
