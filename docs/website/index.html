@@ -73,8 +73,8 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 
 <section class="hero">
 <h1>NOVAD</h1>
-<p class="subtitle">FTC Defense Library</p>
-<p class="tagline">Stop getting pushed around. Two methods. That's it.</p>
+<p class="subtitle">FTC Defense Library v2.2.0</p>
+<p class="tagline">Stop getting pushed around. Three methods. Two modes. That's it.</p>
 <a href="#installation" class="btn">Get Started</a>
 <a href="https://github.com/ekansh-arora0/novad" class="btn">View on GitHub</a>
 </section>
@@ -89,10 +89,10 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 <p>Novad is a defense library for FTC robots. It uses odometry to detect when your robot is being pushed and automatically applies counter-force to resist movement.</p>
 
 <h3>How it Works</h3>
-<p>Every loop iteration, Novad:</p>
+<p>Every loop iteration (~5ms), Novad:</p>
 <ol>
-<li><strong>Reads your joystick input</strong> - What direction did you command?</li>
-<li><strong>Reads odometry</strong> - What direction did the robot actually move?</li>
+<li><strong>Reads your motor commands</strong> - What did you tell the motors to do?</li>
+<li><strong>Reads odometry</strong> - What did the robot actually do?</li>
 <li><strong>Compares them</strong> - Any difference is an external force (being pushed)</li>
 <li><strong>Applies PIDF correction</strong> - Counter-force to resist the push</li>
 </ol>
@@ -104,12 +104,23 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 <div class="step-nav">
 <a href="#defense-mode" class="step-card">
 <h4>🛡️ Defense Mode</h4>
-<p>Drive while resisting pushes. Use <code>novad.defense()</code> instead of your normal drive call.</p>
+<p>Drive while resisting pushes. Use <code>novad.defense()</code> or <code>novad.defenseWithMotors()</code>.</p>
 </a>
 <a href="#lockdown-mode" class="step-card">
 <h4>🔒 Lockdown Mode</h4>
-<p>Become completely immovable. Use <code>novad.lockdown()</code> when you want to plant.</p>
+<p>Become completely immovable. Driver input is IGNORED. Use <code>novad.lockdown()</code>.</p>
 </a>
+</div>
+
+<div class="box important">
+<h4>📌 Quick Summary</h4>
+<table>
+<tr><th>Method</th><th>Mode</th><th>Can Drive?</th><th>Resists Pushes?</th></tr>
+<tr><td><code>defense(gamepad)</code></td><td>🛡️ Defense</td><td>✅ Yes</td><td>✅ Yes</td></tr>
+<tr><td><code>defense(strafe, fwd, rot)</code></td><td>🛡️ Defense</td><td>✅ Yes</td><td>✅ Yes</td></tr>
+<tr><td><code>defenseWithMotors(lf, rf, lb, rb)</code></td><td>🛡️ Defense</td><td>✅ Yes</td><td>✅ Yes</td></tr>
+<tr><td><code>lockdown()</code></td><td>🔒 Lockdown</td><td>❌ No</td><td>✅ Maximum</td></tr>
+</table>
 </div>
 
 <h3>Requirements</h3>
@@ -404,78 +415,228 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 <section id="api">
 <h2>API Reference</h2>
 
-<h3 id="defense-mode">Defense Mode</h3>
+<p>Novad v2.2.0 provides three ways to drive with defense, plus lockdown mode.</p>
+
+<div class="box">
+<h4>TL;DR - Which Method Do I Use?</h4>
+<table>
+<tr><th>Your Situation</th><th>Use This</th></tr>
+<tr><td>Simple joystick driving</td><td><code>novad.defense(gamepad1)</code></td></tr>
+<tr><td>Modified joystick values (multipliers, curves)</td><td><code>novad.defense(strafe, forward, rotate)</code></td></tr>
+<tr><td>D-pad macros, auto-align, custom buttons</td><td><code>novad.defenseWithMotors(lf, rf, lb, rb)</code></td></tr>
+<tr><td>Plant and block (immovable)</td><td><code>novad.lockdown()</code></td></tr>
+</table>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+<!--                           DEFENSE MODE METHODS                               -->
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+
+<h3 id="defense-mode">🛡️ Defense Mode</h3>
+<p>Defense mode lets you drive normally while resisting pushes. Use ONE of these methods every loop.</p>
+
+<div class="method">
+<div class="method-sig">novad.defense(Gamepad gamepad)</div>
+<div class="method-desc">
+<p><strong>RECOMMENDED - Automatically reads all inputs.</strong></p>
+<p>Pass your gamepad directly. Novad reads joysticks and handles field-centric transformation automatically.</p>
+<pre><code><span class="cmt">// Simplest usage</span>
+novad.defense(gamepad1);</code></pre>
+<p><strong>Limitation:</strong> Won't catch button-triggered macros (D-pad moves, auto-align, etc.)</p>
+</div>
+</div>
 
 <div class="method">
 <div class="method-sig">novad.defense(double strafe, double forward, double rotate)</div>
 <div class="method-desc">
-<p><strong>The main method - call this every loop iteration.</strong></p>
-<p>This drives your robot while actively resisting external pushes. It compares driver input vs actual movement (via odometry). Any discrepancy is treated as an external push, and Novad applies counter-force.</p>
-<p><strong>Parameters:</strong></p>
-<ul>
-<li><code>strafe</code> - Left stick X. Range -1 to 1. Positive = right.</li>
-<li><code>forward</code> - Left stick Y. Range -1 to 1. Positive = forward. <strong>Negate gamepad Y!</strong></li>
-<li><code>rotate</code> - Right stick X. Range -1 to 1. Positive = turn right.</li>
-</ul>
-<p><strong>What it resists:</strong></p>
-<ul>
-<li>✓ Being pushed sideways</li>
-<li>✓ Being pushed forward/backward</li>
-<li>✓ Being spun/rotated</li>
-</ul>
+<p><strong>Pass joystick values directly.</strong></p>
+<p>Use this if you need to modify joystick values before passing them.</p>
+<pre><code><span class="cmt">// Manual joystick values</span>
+novad.defense(
+    gamepad1.left_stick_x,     <span class="cmt">// strafe (-1 = left, +1 = right)</span>
+    -gamepad1.left_stick_y,    <span class="cmt">// forward (NEGATE! -1 = back, +1 = forward)</span>
+    gamepad1.right_stick_x     <span class="cmt">// rotate (-1 = CCW, +1 = CW)</span>
+);</code></pre>
+<p><strong>Limitation:</strong> Won't catch button-triggered movements!</p>
 </div>
 </div>
 
-<h3 id="lockdown-mode">Lockdown Mode</h3>
+<div class="method">
+<div class="method-sig">novad.defenseWithMotors(double lf, double rf, double lb, double rb)</div>
+<div class="method-desc">
+<p><strong>BEST FOR CUSTOM CONTROLS - Pass intended motor powers.</strong></p>
+<p>Use this if your code has button-triggered movements (D-pad macros, auto-align, auto-score positions). Novad tracks what the motors are <em>commanded</em> to do vs what <em>actually happens</em>.</p>
+<pre><code><span class="cmt">// Calculate motor powers yourself</span>
+<span class="kw">double</span> strafe = gamepad1.left_stick_x;
+<span class="kw">double</span> forward = -gamepad1.left_stick_y;
+<span class="kw">double</span> rotate = gamepad1.right_stick_x;
+
+<span class="cmt">// Button-triggered movements (the edge case!)</span>
+<span class="kw">if</span> (gamepad1.dpad_up) { forward = 0.5; strafe = 0; rotate = 0; }
+<span class="kw">if</span> (gamepad1.dpad_down) { forward = -0.5; strafe = 0; rotate = 0; }
+<span class="kw">if</span> (gamepad1.dpad_left) { strafe = -0.5; forward = 0; rotate = 0; }
+<span class="kw">if</span> (gamepad1.dpad_right) { strafe = 0.5; forward = 0; rotate = 0; }
+
+<span class="cmt">// Calculate mecanum motor powers</span>
+<span class="kw">double</span> lf = forward + strafe + rotate;
+<span class="kw">double</span> rf = forward - strafe - rotate;
+<span class="kw">double</span> lb = forward - strafe + rotate;
+<span class="kw">double</span> rb = forward + strafe - rotate;
+
+<span class="cmt">// Normalize if any > 1</span>
+<span class="kw">double</span> max = Math.max(Math.abs(lf), Math.max(Math.abs(rf), 
+             Math.max(Math.abs(lb), Math.abs(rb))));
+<span class="kw">if</span> (max > 1.0) { lf /= max; rf /= max; lb /= max; rb /= max; }
+
+<span class="cmt">// Pass to Novad - it will add corrections!</span>
+novad.defenseWithMotors(lf, rf, lb, rb);</code></pre>
+<p><strong>How it works:</strong> Novad tracks what movement those motor powers <em>should</em> cause, compares to what <em>actually happened</em> (via odometry), and applies corrections for any discrepancy.</p>
+</div>
+</div>
+
+<div class="box important">
+<h4>📌 Which Method Should I Use?</h4>
+<table>
+<tr><th>Situation</th><th>Method</th></tr>
+<tr><td>Simple joystick driving</td><td><code>defense(gamepad1)</code></td></tr>
+<tr><td>Modified joystick values</td><td><code>defense(strafe, forward, rotate)</code></td></tr>
+<tr><td>Button-triggered macros / D-pad moves</td><td><code>defenseWithMotors(lf, rf, lb, rb)</code> ✅</td></tr>
+<tr><td>Auto-align / auto-score positions</td><td><code>defenseWithMotors(lf, rf, lb, rb)</code> ✅</td></tr>
+</table>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+<!--                            LOCKDOWN MODE                                     -->
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+
+<h3 id="lockdown-mode">🔒 Lockdown Mode</h3>
+<p>Lockdown mode makes your robot <strong>completely immovable</strong>. It holds position with maximum force and ignores driver input.</p>
 
 <div class="method">
 <div class="method-sig">novad.lockdown()</div>
 <div class="method-desc">
-<p><strong>Makes the robot completely immovable.</strong></p>
-<p>Call this when you want to plant and block. The robot holds its exact position (X, Y, AND heading) with maximum force. Driver input is ignored while locked.</p>
-<p><strong>Use case:</strong> You're in a good defensive position and want to become an immovable wall.</p>
+<p><strong>Makes the robot immovable at its current position.</strong></p>
+<p>When called, Novad saves the current X, Y, and heading. It then actively fights to stay at that exact position. Driver input is <strong>completely ignored</strong> while locked.</p>
+<pre><code><span class="cmt">// Bind lockdown to a button</span>
+<span class="kw">if</span> (gamepad1.a) {
+    novad.lockdown();  <span class="cmt">// Press and HOLD to stay locked</span>
+}</code></pre>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>You're in a good blocking position and want to plant</li>
+<li>Opponent is trying to push you out of the way</li>
+<li>You need to hold position while scoring</li>
+</ul>
+<p><strong>Note:</strong> Keep calling <code>lockdown()</code> every loop to stay locked. If you stop calling it, call <code>unlock()</code> to exit cleanly.</p>
 </div>
 </div>
 
 <div class="method">
 <div class="method-sig">novad.unlock()</div>
 <div class="method-desc">
-<p><strong>Exits lockdown mode.</strong></p>
-<p>Returns to normal defense mode where you can drive while resisting pushes.</p>
+<p><strong>Exits lockdown mode and returns to defense mode.</strong></p>
+<pre><code><span class="kw">if</span> (gamepad1.b) {
+    novad.unlock();  <span class="cmt">// Release to resume driving</span>
+}</code></pre>
+<p>After unlocking, you can resume driving with <code>defense()</code>.</p>
 </div>
 </div>
 
 <div class="method">
 <div class="method-sig">boolean novad.isLocked()</div>
 <div class="method-desc">
-Returns <code>true</code> if currently in lockdown mode. Useful for telemetry.
+<p>Returns <code>true</code> if currently in lockdown mode. Useful for telemetry or conditional logic.</p>
+<pre><code>telemetry.addData(<span class="str">"Mode"</span>, novad.isLocked() ? <span class="str">"🔒 LOCKED"</span> : <span class="str">"🛡️ DEFENSE"</span>);</code></pre>
 </div>
 </div>
 
-<h3>Helper Methods</h3>
+<div class="box warn">
+<h4>⚠️ Defense vs Lockdown</h4>
+<table>
+<tr><th>Feature</th><th>Defense Mode</th><th>Lockdown Mode</th></tr>
+<tr><td>Driver input</td><td>✅ Works normally</td><td>❌ Ignored</td></tr>
+<tr><td>Push resistance</td><td>✅ Resists pushes</td><td>✅ Maximum resistance</td></tr>
+<tr><td>Can drive</td><td>✅ Yes</td><td>❌ No</td></tr>
+<tr><td>Position hold</td><td>Corrects for drift</td><td>Locks to exact X, Y, heading</td></tr>
+<tr><td>Use case</td><td>Active defense while moving</td><td>Plant and block</td></tr>
+</table>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+<!--                            HELPER METHODS                                    -->
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+
+<h3>🔧 Helper Methods</h3>
 
 <div class="method">
 <div class="method-sig">Pose2d novad.getPose()</div>
 <div class="method-desc">
-Returns current robot position as <code>Pose2d(x, y, heading)</code>. X/Y in inches, heading in radians.
+<p>Returns current robot position as <code>Pose2d(x, y, heading)</code>.</p>
+<ul>
+<li><code>x</code> - Position in inches (forward/back from start)</li>
+<li><code>y</code> - Position in inches (left/right from start)</li>
+<li><code>heading</code> - Angle in radians (0 = starting direction)</li>
+</ul>
+<pre><code>Pose2d pose = novad.getPose();
+telemetry.addData(<span class="str">"Position"</span>, <span class="str">"X: %.1f, Y: %.1f, H: %.1f°"</span>, 
+    pose.x, pose.y, Math.toDegrees(pose.heading));</code></pre>
 </div>
 </div>
 
 <div class="method">
 <div class="method-sig">void novad.resetHeading()</div>
 <div class="method-desc">
-Resets the heading to zero. Useful at the start of TeleOp for field-centric driving.
+<p>Sets current heading as "zero". Call at the start of TeleOp for field-centric driving.</p>
+<pre><code><span class="cmt">// At start of TeleOp</span>
+waitForStart();
+novad.resetHeading();  <span class="cmt">// Current direction is now "forward"</span></code></pre>
 </div>
 </div>
-
-<h3>Factory Method</h3>
 
 <div class="method">
-<div class="method-sig">static Novad Novad.create(HardwareMap hardwareMap)</div>
+<div class="method-sig">void novad.resetPosition()</div>
 <div class="method-desc">
-Creates a Novad instance using settings from <code>NovadSetup.java</code>. Call once in your init.
+<p>Resets position to (0, 0, 0). Useful if odometry drifted.</p>
 </div>
 </div>
+
+<div class="method">
+<div class="method-sig">double novad.getLoopTimeMs()</div>
+<div class="method-desc">
+<p>Returns time since last update in milliseconds. Use for debugging - should be under 20ms.</p>
+<pre><code>telemetry.addData(<span class="str">"Loop"</span>, <span class="str">"%.1f ms"</span>, novad.getLoopTimeMs());</code></pre>
+</div>
+</div>
+
+<div class="method">
+<div class="method-sig">void novad.setTranslationalPIDF(PIDFCoefficients pidf)</div>
+<div class="method-desc">
+<p>Update translational PIDF at runtime. Useful for live tuning.</p>
+</div>
+</div>
+
+<div class="method">
+<div class="method-sig">void novad.setHeadingPIDF(PIDFCoefficients pidf)</div>
+<div class="method-desc">
+<p>Update heading PIDF at runtime. Useful for live tuning.</p>
+</div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+<!--                           FACTORY METHOD                                     -->
+<!-- ─────────────────────────────────────────────────────────────────────────── -->
+
+<h3>🏭 Factory Method</h3>
+
+<div class="method">
+<div class="method-sig">static Novad Constants.createNovad(HardwareMap hardwareMap)</div>
+<div class="method-desc">
+<p>Creates a Novad instance using settings from <code>Constants.java</code>. Call once during init.</p>
+<pre><code>Novad novad = Constants.createNovad(hardwareMap);</code></pre>
+<p>This is the recommended way to create Novad. It reads all your configuration from <code>Constants.java</code> (motor names, PIDF values, etc.) just like Pedro Pathing's <code>createFollower()</code>.</p>
+</div>
+</div>
+
 </section>
 
 <div class="divider">• • •</div>
@@ -537,7 +698,7 @@ Creates a Novad instance using settings from <code>NovadSetup.java</code>. Call 
 </section>
 
 <footer>
-<p><strong>NOVAD</strong> v2.0.0</p>
+<p><strong>NOVAD</strong> v2.2.0</p>
 <p>Built for FTC teams who refuse to be pushed around.</p>
 <p><a href="https://github.com/ekansh-arora0/novad">GitHub</a></p>
 </footer>
