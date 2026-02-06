@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.novad;package org.firstinspires.ftc.teamcode.novad;package org.firstinspires.ftc.teamcode.novad;
+package org.firstinspires.ftc.teamcode.novad;package org.firstinspires.ftc.teamcode.novad;package org.firstinspires.ftc.teamcode.novad;package org.firstinspires.ftc.teamcode.novad;
 
 
 
@@ -6,479 +6,961 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 
-import com.qualcomm.robotcore.hardware.DcMotorEx;import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.DcMotorEx;import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 
-import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Gamepad;
 
-import com.qualcomm.robotcore.hardware.DcMotor;import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.hardware.HardwareMap;import com.qualcomm.robotcore.hardware.DcMotor;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;import com.qualcomm.robotcore.hardware.DcMotorEx;import org.firstinspires.ftc.teamcode.NovadSetup;
 
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;import com.qualcomm.robotcore.hardware.DcMotorEx;import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import com.qualcomm.robotcore.hardware.HardwareMap;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-/**
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;import com.qualcomm.robotcore.hardware.HardwareMap;
 
- * NOVAD - FTC Defense Libraryimport com.qualcomm.robotcore.util.ElapsedTime;/**
+
+
+/**import com.qualcomm.robotcore.hardware.DcMotor;import com.qualcomm.robotcore.util.ElapsedTime;
+
+ * NOVAD - FTC Defense Library v2.2.0
+
+ * import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
+ * Ultra-low latency defense system with <20ms reaction time.
+
+ * Now tracks ACTUAL motor commands, not just joystick input.import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;import com.qualcomm.robotcore.hardware.DcMotorEx;import org.firstinspires.ftc.teamcode.NovadSetup;
+
+ * This handles button-triggered movements (auto-align, macros, etc.)
+
+ * import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+
+ * KEY INSIGHT: We compare what motors are COMMANDED to do vs what
+
+ * the robot ACTUALLY does. Any discrepancy = external push.import com.qualcomm.robotcore.hardware.HardwareMap;
 
  * 
 
- * Ultra-low latency defense system with <20ms reaction time. * NOVAD - FTC Defense Library
+ * Usage:/**
 
- * Uses Pinpoint odometry for precise position tracking.
+ *   Novad novad = Constants.createNovad(hardwareMap);
 
- * import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit; * 
+ *    * NOVAD - FTC Defense Libraryimport com.qualcomm.robotcore.util.ElapsedTime;/**
 
- * Usage:
+ *   // In your loop - pass the gamepad for full input tracking
 
- *   Novad novad = Constants.createNovad(hardwareMap);import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit; * API:
+ *   novad.defense(gamepad1);  // Auto-reads all inputs * 
 
- *   novad.defense(strafe, forward, rotate);  // In loop
+ *   
 
- *   novad.lockdown();                         // Become immovableimport org.firstinspires.ftc.robotcore.external.navigation.Pose2D; *   novad.defense(strafe, forward, rotate);  // Drive with push resistance
+ *   // OR use manual mode if you have custom motor commands * Ultra-low latency defense system with <20ms reaction time. * NOVAD - FTC Defense Library
 
- *   novad.unlock();                           // Exit lockdown
+ *   novad.defenseWithMotors(lf, rf, lb, rb);  // Pass your motor powers
 
- */ *   novad.lockdown();                         // Immovable mode
+ *    * Uses Pinpoint odometry for precise position tracking.
+
+ *   novad.lockdown();  // Become immovable
+
+ *   novad.unlock();    // Exit lockdown * import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit; * 
+
+ */
+
+public class Novad { * Usage:
+
+
+
+    public static final String VERSION = "2.2.0"; *   Novad novad = Constants.createNovad(hardwareMap);import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit; * API:
+
+
+
+    // Hardware *   novad.defense(strafe, forward, rotate);  // In loop
+
+    private final GoBildaPinpointDriver pinpoint;
+
+    private final DcMotorEx frontLeft, frontRight, backLeft, backRight; *   novad.lockdown();                         // Become immovableimport org.firstinspires.ftc.robotcore.external.navigation.Pose2D; *   novad.defense(strafe, forward, rotate);  // Drive with push resistance
+
+
+
+    // Controllers *   novad.unlock();                           // Exit lockdown
+
+    private final PIDController xController;
+
+    private final PIDController yController; */ *   novad.lockdown();                         // Immovable mode
+
+    private final PIDController headingController;
 
 public class Novad {
 
-/** *   novad.unlock();                           // Exit lockdown
+    // Settings
 
-    public static final String VERSION = "2.1.0";
+    private final double maxPower;/** *   novad.unlock();                           // Exit lockdown
+
+    private final boolean useFieldCentric;
+
+    private PIDFCoefficients translationalPIDF;    public static final String VERSION = "2.1.0";
+
+    private PIDFCoefficients headingPIDF;
 
  * NOVAD - FTC Defense Library */
 
-    // Hardware - direct references for speed
+    // State - preallocated
 
-    private final GoBildaPinpointDriver pinpoint; * public class Novad {
+    private double lastX, lastY, lastHeading;    // Hardware - direct references for speed
 
-    private final DcMotorEx frontLeft, frontRight, backLeft, backRight;
+    private double lockX, lockY, lockHeading;
 
- * Usage:
+    private boolean inLockdown = false;    private final GoBildaPinpointDriver pinpoint; * public class Novad {
 
-    // Controllers
+    private double headingOffset = 0;
 
-    private final PIDController xController; *   Novad novad = Constants.createNovad(hardwareMap);    public static final String VERSION = "2.0.0";
-
-    private final PIDController yController;
-
-    private final PIDController headingController; *   
+    private long lastTimeNanos;    private final DcMotorEx frontLeft, frontRight, backLeft, backRight;
 
 
 
-    // Settings - cached for speed *   // In loop:    private final Localizer localizer;
+    // Motor command tracking (for button-triggered movements) * Usage:
 
-    private final double maxPower;
+    private double lastCommandedLF = 0, lastCommandedRF = 0;
 
-    private final boolean useFieldCentric; *   novad.defense(strafe, forward, rotate);  // Drive with push resistance    private final MecanumDrivetrain drivetrain;
-
-    private PIDFCoefficients translationalPIDF;
-
-    private PIDFCoefficients headingPIDF; *   novad.lockdown();                         // Become immovable
+    private double lastCommandedLB = 0, lastCommandedRB = 0;    // Controllers
 
 
 
-    // State - preallocated to avoid GC *   novad.unlock();                           // Exit lockdown    private final PIDController xController;
+    // Constants    private final PIDController xController; *   Novad novad = Constants.createNovad(hardwareMap);    public static final String VERSION = "2.0.0";
 
-    private double lastX, lastY, lastHeading;
+    private static final double MAX_VELOCITY = 60.0;       // inches/sec
 
-    private double lockX, lockY, lockHeading; */    private final PIDController yController;
+    private static final double MAX_ANGULAR_VEL = Math.PI; // rad/sec    private final PIDController yController;
 
-    private boolean inLockdown = false;
+    private static final double POSITION_DEADZONE = 0.02;  // inches
 
-    private double headingOffset = 0;public class Novad {    private final PIDController headingController;
-
-    private long lastTimeNanos;
+    private static final double HEADING_DEADZONE = 0.005;  // radians    private final PIDController headingController; *   
 
 
-
-    // Constants
-
-    private static final double MAX_VELOCITY = 60.0;       // inches/sec (tunable)    public static final String VERSION = "2.0.0";    private Pose2d lastPose;
-
-    private static final double MAX_ANGULAR_VEL = Math.PI; // rad/sec
-
-    private static final double POSITION_DEADZONE = 0.02;  // inches    private Pose2d lockdownTarget = null;
-
-    private static final double HEADING_DEADZONE = 0.005;  // radians
-
-    // Hardware    
 
     /**
 
-     * Create Novad using NovadBuilder    private final GoBildaPinpointDriver pinpoint;    private final ElapsedTime loopTimer = new ElapsedTime();
+     * Create Novad using NovadBuilder
 
-     */
+     */    // Settings - cached for speed *   // In loop:    private final Localizer localizer;
 
-    Novad(HardwareMap hardwareMap,    private final DcMotorEx frontLeft, frontRight, backLeft, backRight;    private double lastLoopTime = 0;
+    Novad(HardwareMap hardwareMap,
 
-          MecanumConstants drive,
+          MecanumConstants drive,    private final double maxPower;
 
           PinpointConstants localizer,
 
-          PIDFCoefficients translationalPIDF,
+          PIDFCoefficients translationalPIDF,    private final boolean useFieldCentric; *   novad.defense(strafe, forward, rotate);  // Drive with push resistance    private final MecanumDrivetrain drivetrain;
 
-          PIDFCoefficients headingPIDF,    // Controllers    private boolean inLockdown = false;
+          PIDFCoefficients headingPIDF,
 
-          DefenseSettings settings) {
+          DefenseSettings settings) {    private PIDFCoefficients translationalPIDF;
 
-            private final PIDController xController;
+        
 
-        this.translationalPIDF = translationalPIDF;
+        this.translationalPIDF = translationalPIDF;    private PIDFCoefficients headingPIDF; *   novad.lockdown();                         // Become immovable
 
-        this.headingPIDF = headingPIDF;    private final PIDController yController;    private static final double MAX_VELOCITY = 40.0;
+        this.headingPIDF = headingPIDF;
 
         this.maxPower = settings.getMaxCorrectionPower();
 
-        this.useFieldCentric = settings.getUseFieldCentric();    private final PIDController headingController;    private static final double MAX_ANGULAR_VEL = Math.PI;
+        this.useFieldCentric = settings.getUseFieldCentric();
+
+    // State - preallocated to avoid GC *   novad.unlock();                           // Exit lockdown    private final PIDController xController;
+
+        // Initialize Pinpoint
+
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, localizer.getHardwareMapName());    private double lastX, lastY, lastHeading;
+
+        
+
+        if (localizer.isUsingCustomResolution()) {    private double lockX, lockY, lockHeading; */    private final PIDController yController;
+
+            pinpoint.setEncoderResolution(localizer.getCustomEncoderResolution());
+
+        } else {    private boolean inLockdown = false;
+
+            pinpoint.setEncoderResolution(localizer.getEncoderResolution());
+
+        }    private double headingOffset = 0;public class Novad {    private final PIDController headingController;
+
+        
+
+        pinpoint.setEncoderDirections(    private long lastTimeNanos;
+
+            localizer.getForwardEncoderDirection(),
+
+            localizer.getStrafeEncoderDirection()
+
+        );
+
+        pinpoint.resetPosAndIMU();    // Constants
 
 
 
-        // Initialize Pinpoint - bulk read mode for speed
+        // Initialize motors    private static final double MAX_VELOCITY = 60.0;       // inches/sec (tunable)    public static final String VERSION = "2.0.0";    private Pose2d lastPose;
+
+        frontLeft = hardwareMap.get(DcMotorEx.class, drive.getLeftFrontMotorName());
+
+        frontRight = hardwareMap.get(DcMotorEx.class, drive.getRightFrontMotorName());    private static final double MAX_ANGULAR_VEL = Math.PI; // rad/sec
+
+        backLeft = hardwareMap.get(DcMotorEx.class, drive.getLeftRearMotorName());
+
+        backRight = hardwareMap.get(DcMotorEx.class, drive.getRightRearMotorName());    private static final double POSITION_DEADZONE = 0.02;  // inches    private Pose2d lockdownTarget = null;
+
+
+
+        frontLeft.setDirection(drive.getLeftFrontMotorDirection());    private static final double HEADING_DEADZONE = 0.005;  // radians
+
+        frontRight.setDirection(drive.getRightFrontMotorDirection());
+
+        backLeft.setDirection(drive.getLeftRearMotorDirection());    // Hardware    
+
+        backRight.setDirection(drive.getRightRearMotorDirection());
+
+    /**
+
+        DcMotor.ZeroPowerBehavior brake = drive.getUseBrakeMode()
+
+            ? DcMotor.ZeroPowerBehavior.BRAKE     * Create Novad using NovadBuilder    private final GoBildaPinpointDriver pinpoint;    private final ElapsedTime loopTimer = new ElapsedTime();
+
+            : DcMotor.ZeroPowerBehavior.FLOAT;
+
+     */
+
+        frontLeft.setZeroPowerBehavior(brake);
+
+        frontRight.setZeroPowerBehavior(brake);    Novad(HardwareMap hardwareMap,    private final DcMotorEx frontLeft, frontRight, backLeft, backRight;    private double lastLoopTime = 0;
+
+        backLeft.setZeroPowerBehavior(brake);
+
+        backRight.setZeroPowerBehavior(brake);          MecanumConstants drive,
+
+
+
+        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);          PinpointConstants localizer,
+
+        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);          PIDFCoefficients translationalPIDF,
+
+        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+          PIDFCoefficients headingPIDF,    // Controllers    private boolean inLockdown = false;
+
+        // Initialize PID controllers
+
+        xController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);          DefenseSettings settings) {
+
+        yController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
+
+        headingController = new PIDController(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);            private final PIDController xController;
+
+
+
+        // Initialize state        this.translationalPIDF = translationalPIDF;
+
+        pinpoint.update();
+
+        Pose2D pose = pinpoint.getPosition();        this.headingPIDF = headingPIDF;    private final PIDController yController;    private static final double MAX_VELOCITY = 40.0;
+
+        lastX = pose.getX(DistanceUnit.INCH);
+
+        lastY = pose.getY(DistanceUnit.INCH);        this.maxPower = settings.getMaxCorrectionPower();
+
+        lastHeading = pose.getHeading(AngleUnit.RADIANS);
+
+        lastTimeNanos = System.nanoTime();        this.useFieldCentric = settings.getUseFieldCentric();    private final PIDController headingController;    private static final double MAX_ANGULAR_VEL = Math.PI;
+
+    }
+
+
+
+    // ========================================================================
+
+    // PRIMARY API - Use these methods        // Initialize Pinpoint - bulk read mode for speed
+
+    // ========================================================================
 
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, localizer.getHardwareMapName());
 
-            // Settings    public static Novad create(HardwareMap hardwareMap) {
+    /**
 
-        if (localizer.isUsingCustomResolution()) {
+     * DEFENSE MODE - Gamepad Input (Recommended)            // Settings    public static Novad create(HardwareMap hardwareMap) {
 
-            pinpoint.setEncoderResolution(localizer.getCustomEncoderResolution());    private final DefenseSettings settings;        Localizer localizer;
+     * 
 
-        } else {
+     * Reads ALL gamepad inputs to understand what the driver wants.        if (localizer.isUsingCustomResolution()) {
 
-            pinpoint.setEncoderResolution(localizer.getEncoderResolution());    private final PIDFCoefficients translationalPIDF;
+     * Handles joystick driving AND button-triggered movements.
+
+     *             pinpoint.setEncoderResolution(localizer.getCustomEncoderResolution());    private final DefenseSettings settings;        Localizer localizer;
+
+     * @param gamepad The gamepad controlling the robot
+
+     */        } else {
+
+    public void defense(Gamepad gamepad) {
+
+        if (inLockdown) {            pinpoint.setEncoderResolution(localizer.getEncoderResolution());    private final PIDFCoefficients translationalPIDF;
+
+            holdPosition();
+
+            return;        }
 
         }
 
             private final PIDFCoefficients headingPIDF;        if (NovadSetup.USE_PINPOINT) {
 
-        pinpoint.setEncoderDirections(
+        // Calculate what driver wants from joystick
 
-            localizer.getForwardEncoderDirection(),            localizer = new PinpointLocalizer(hardwareMap, NovadSetup.PINPOINT_NAME);
+        double strafe = gamepad.left_stick_x;        pinpoint.setEncoderDirections(
 
-            localizer.getStrafeEncoderDirection()
+        double forward = -gamepad.left_stick_y;
 
-        );    // State        } else if (NovadSetup.USE_THREE_WHEEL) {
+        double rotate = gamepad.right_stick_x;            localizer.getForwardEncoderDirection(),            localizer = new PinpointLocalizer(hardwareMap, NovadSetup.PINPOINT_NAME);
 
-        pinpoint.resetPosAndIMU();
 
-    private Pose2d lastPose;            localizer = new ThreeWheelLocalizer(
 
-        // Initialize motors - direct access for minimal latency
+        // Field-centric transform            localizer.getStrafeEncoderDirection()
 
-        frontLeft = hardwareMap.get(DcMotorEx.class, drive.getLeftFrontMotorName());    private Pose2d lockdownTarget = null;                hardwareMap,
+        double heading = getCurrentHeading();
 
-        frontRight = hardwareMap.get(DcMotorEx.class, drive.getRightFrontMotorName());
+        if (useFieldCentric) {        );    // State        } else if (NovadSetup.USE_THREE_WHEEL) {
 
-        backLeft = hardwareMap.get(DcMotorEx.class, drive.getLeftRearMotorName());    private boolean inLockdown = false;                NovadSetup.LEFT_ENCODER,
+            double cos = Math.cos(heading);
 
-        backRight = hardwareMap.get(DcMotorEx.class, drive.getRightRearMotorName());
+            double sin = Math.sin(heading);        pinpoint.resetPosAndIMU();
 
-    private double headingOffset = 0;                NovadSetup.RIGHT_ENCODER,
+            double temp = strafe;
 
-        frontLeft.setDirection(drive.getLeftFrontMotorDirection());
+            strafe = temp * cos - forward * sin;    private Pose2d lastPose;            localizer = new ThreeWheelLocalizer(
 
-        frontRight.setDirection(drive.getRightFrontMotorDirection());                    NovadSetup.CENTER_ENCODER,
+            forward = temp * sin + forward * cos;
+
+        }        // Initialize motors - direct access for minimal latency
+
+
+
+        // Calculate mecanum motor powers from joystick        frontLeft = hardwareMap.get(DcMotorEx.class, drive.getLeftFrontMotorName());    private Pose2d lockdownTarget = null;                hardwareMap,
+
+        double lf = forward + strafe + rotate;
+
+        double rf = forward - strafe - rotate;        frontRight = hardwareMap.get(DcMotorEx.class, drive.getRightFrontMotorName());
+
+        double lb = forward - strafe + rotate;
+
+        double rb = forward + strafe - rotate;        backLeft = hardwareMap.get(DcMotorEx.class, drive.getLeftRearMotorName());    private boolean inLockdown = false;                NovadSetup.LEFT_ENCODER,
+
+
+
+        // Normalize        backRight = hardwareMap.get(DcMotorEx.class, drive.getRightRearMotorName());
+
+        double max = Math.max(Math.abs(lf), Math.max(Math.abs(rf), Math.max(Math.abs(lb), Math.abs(rb))));
+
+        if (max > 1.0) {    private double headingOffset = 0;                NovadSetup.RIGHT_ENCODER,
+
+            lf /= max;
+
+            rf /= max;        frontLeft.setDirection(drive.getLeftFrontMotorDirection());
+
+            lb /= max;
+
+            rb /= max;        frontRight.setDirection(drive.getRightFrontMotorDirection());                    NovadSetup.CENTER_ENCODER,
+
+        }
 
         backLeft.setDirection(drive.getLeftRearMotorDirection());
 
-        backRight.setDirection(drive.getRightRearMotorDirection());    private final ElapsedTime loopTimer = new ElapsedTime();                NovadSetup.TICKS_TO_INCHES,
+        // Now apply defense using motor powers
 
-
-
-        DcMotor.ZeroPowerBehavior brake = drive.getUseBrakeMode()    private double lastLoopTime = 0;                NovadSetup.TRACK_WIDTH,
-
-            ? DcMotor.ZeroPowerBehavior.BRAKE
-
-            : DcMotor.ZeroPowerBehavior.FLOAT;                NovadSetup.CENTER_OFFSET,
-
-
-
-        frontLeft.setZeroPowerBehavior(brake);    // Constants                NovadSetup.LEFT_ENCODER_REVERSED,
-
-        frontRight.setZeroPowerBehavior(brake);
-
-        backLeft.setZeroPowerBehavior(brake);    private static final double MAX_VELOCITY = 40.0;  // inches per second                NovadSetup.RIGHT_ENCODER_REVERSED,
-
-        backRight.setZeroPowerBehavior(brake);
-
-    private static final double MAX_ANGULAR_VEL = Math.PI;  // radians per second                NovadSetup.CENTER_ENCODER_REVERSED
-
-        // RUN_WITHOUT_ENCODER for lowest latency
-
-        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);            );
-
-        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);    /**        } else {
-
-        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-     * Create Novad using builder (preferred method)            throw new IllegalStateException("Enable USE_PINPOINT or USE_THREE_WHEEL in NovadSetup");
-
-        // Initialize PID controllers
-
-        xController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);     */        }
-
-        yController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
-
-        headingController = new PIDController(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);    Novad(HardwareMap hardwareMap,
-
-
-
-        // Initialize state          MecanumConstants driveConstants,        return new Novad(localizer, new MecanumDrivetrain(hardwareMap));
-
-        pinpoint.update();
-
-        Pose2D pose = pinpoint.getPosition();          PinpointConstants localizerConstants,    }
-
-        lastX = pose.getX(DistanceUnit.INCH);
-
-        lastY = pose.getY(DistanceUnit.INCH);          PIDFCoefficients translationalPIDF,
-
-        lastHeading = pose.getHeading(AngleUnit.RADIANS);
-
-        lastTimeNanos = System.nanoTime();          PIDFCoefficients headingPIDF,    public Novad(Localizer localizer, MecanumDrivetrain drivetrain) {
+        defenseWithMotors(lf, rf, lb, rb);        backRight.setDirection(drive.getRightRearMotorDirection());    private final ElapsedTime loopTimer = new ElapsedTime();                NovadSetup.TICKS_TO_INCHES,
 
     }
 
-          DefenseSettings settings) {        this.localizer = localizer;
+
 
     /**
 
-     * DEFENSE MODE - Drive while resisting pushes                this.drivetrain = drivetrain;
+     * DEFENSE MODE - Joystick Values (Legacy)        DcMotor.ZeroPowerBehavior brake = drive.getUseBrakeMode()    private double lastLoopTime = 0;                NovadSetup.TRACK_WIDTH,
 
-     * Call this every loop iteration (~20ms or faster)
+     * 
 
-     */        this.translationalPIDF = translationalPIDF;
+     * Use this if you compute your own strafe/forward/rotate values.            ? DcMotor.ZeroPowerBehavior.BRAKE
+
+     * WARNING: Won't catch button-triggered movements!
+
+     */            : DcMotor.ZeroPowerBehavior.FLOAT;                NovadSetup.CENTER_OFFSET,
 
     public void defense(double strafe, double forward, double rotate) {
 
-        if (inLockdown) {        this.headingPIDF = headingPIDF;        this.xController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D, NovadSetup.TRANS_F);
+        if (inLockdown) {
 
             holdPosition();
 
-            return;        this.settings = settings;        this.yController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D, NovadSetup.TRANS_F);
+            return;        frontLeft.setZeroPowerBehavior(brake);    // Constants                NovadSetup.LEFT_ENCODER_REVERSED,
 
         }
 
-        this.headingController = new PIDController(NovadSetup.HEADING_P, NovadSetup.HEADING_I, NovadSetup.HEADING_D, NovadSetup.HEADING_F);
+        frontRight.setZeroPowerBehavior(brake);
 
-        // Get current pose - single I2C read
+        double heading = getCurrentHeading();
 
-        pinpoint.update();        // Initialize Pinpoint
+        if (useFieldCentric) {        backLeft.setZeroPowerBehavior(brake);    private static final double MAX_VELOCITY = 40.0;  // inches per second                NovadSetup.RIGHT_ENCODER_REVERSED,
 
-        Pose2D pose = pinpoint.getPosition();
+            double cos = Math.cos(heading);
 
-        double currentX = pose.getX(DistanceUnit.INCH);        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, localizerConstants.getHardwareMapName());        localizer.update();
+            double sin = Math.sin(heading);        backRight.setZeroPowerBehavior(brake);
 
-        double currentY = pose.getY(DistanceUnit.INCH);
+            double temp = strafe;
 
-        double currentHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);                lastPose = localizer.getPose();
+            strafe = temp * cos - forward * sin;    private static final double MAX_ANGULAR_VEL = Math.PI;  // radians per second                NovadSetup.CENTER_ENCODER_REVERSED
 
+            forward = temp * sin + forward * cos;
 
-
-        // Calculate delta time        if (localizerConstants.isUsingCustomResolution()) {        loopTimer.reset();
-
-        long now = System.nanoTime();
-
-        double dt = (now - lastTimeNanos) * 1e-9;            pinpoint.setEncoderResolution(localizerConstants.getCustomEncoderResolution());    }
-
-        lastTimeNanos = now;
-
-        if (dt < 0.001) dt = 0.001;        } else {
+        }        // RUN_WITHOUT_ENCODER for lowest latency
 
 
 
-        // Actual movement this frame            pinpoint.setEncoderResolution(localizerConstants.getEncoderResolution());    /**
+        double lf = forward + strafe + rotate;        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);            );
 
-        double actualDX = currentX - lastX;
+        double rf = forward - strafe - rotate;
 
-        double actualDY = currentY - lastY;        }     * DEFENSE MODE - Call in your loop.
+        double lb = forward - strafe + rotate;        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        double actualDH = normalizeAngle(currentHeading - lastHeading);
+        double rb = forward + strafe - rotate;
 
-             * Drives robot while resisting external pushes.
+        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);    /**        } else {
 
-        // Expected movement based on joystick
+        double max = Math.max(Math.abs(lf), Math.max(Math.abs(rf), Math.max(Math.abs(lb), Math.abs(rb))));
 
-        double expVX = strafe * MAX_VELOCITY;        pinpoint.setEncoderDirections(     */
+        if (max > 1.0) {        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        double expVY = forward * MAX_VELOCITY;
+            lf /= max;
 
-        double expVH = rotate * MAX_ANGULAR_VEL;            localizerConstants.getForwardEncoderDirection(),    public void defense(double strafe, double forward, double rotate) {
+            rf /= max;     * Create Novad using builder (preferred method)            throw new IllegalStateException("Enable USE_PINPOINT or USE_THREE_WHEEL in NovadSetup");
 
+            lb /= max;
 
-
-        // Field-centric transform if enabled            localizerConstants.getStrafeEncoderDirection()        if (inLockdown) {
-
-        if (useFieldCentric) {
-
-            double cos = Math.cos(currentHeading);        );            holdPosition();
-
-            double sin = Math.sin(currentHeading);
-
-            double temp = expVX;                    return;
-
-            expVX = temp * cos - expVY * sin;
-
-            expVY = temp * sin + expVY * cos;        pinpoint.resetPosAndIMU();        }
+            rb /= max;        // Initialize PID controllers
 
         }
 
+        xController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);     */        }
 
+        defenseWithMotors(lf, rf, lb, rb);
 
-        double expDX = expVX * dt;
+    }        yController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
 
-        double expDY = expVY * dt;        // Initialize motors        localizer.update();
 
-        double expDH = expVH * dt;
 
-        frontLeft = hardwareMap.get(DcMotorEx.class, driveConstants.getLeftFrontMotorName());        Pose2d currentPose = localizer.getPose();
+    /**        headingController = new PIDController(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);    Novad(HardwareMap hardwareMap,
 
-        // Discrepancy = external force
+     * DEFENSE MODE - Direct Motor Powers (Best for custom controls)
 
-        double discX = actualDX - expDX;        frontRight = hardwareMap.get(DcMotorEx.class, driveConstants.getRightFrontMotorName());        
+     * 
 
-        double discY = actualDY - expDY;
+     * Pass the motor powers you INTEND to apply. Novad will:
 
-        double discH = normalizeAngle(actualDH - expDH);        backLeft = hardwareMap.get(DcMotorEx.class, driveConstants.getLeftRearMotorName());        double dt = getDeltaTime();
+     * 1. Track what movement these powers should cause        // Initialize state          MecanumConstants driveConstants,        return new Novad(localizer, new MecanumDrivetrain(hardwareMap));
 
+     * 2. Detect any discrepancy from external forces
 
+     * 3. Apply corrections to resist pushes        pinpoint.update();
 
-        // Deadzone to prevent jitter        backRight = hardwareMap.get(DcMotorEx.class, driveConstants.getRightRearMotorName());        updatePIDGains();
+     * 4. Actually send the corrected powers to motors
 
-        if (Math.abs(discX) < POSITION_DEADZONE) discX = 0;
+     *         Pose2D pose = pinpoint.getPosition();          PinpointConstants localizerConstants,    }
 
-        if (Math.abs(discY) < POSITION_DEADZONE) discY = 0;
+     * This handles ALL edge cases including:
 
-        if (Math.abs(discH) < HEADING_DEADZONE) discH = 0;
+     * - Joystick driving        lastX = pose.getX(DistanceUnit.INCH);
 
-        frontLeft.setDirection(driveConstants.getLeftFrontMotorDirection());        double actualDX = currentPose.x - lastPose.x;
+     * - Button-triggered movements (auto-align, macros)
 
-        // Update PID gains (for live Dashboard tuning)
+     * - Any custom motor commands        lastY = pose.getY(DistanceUnit.INCH);          PIDFCoefficients translationalPIDF,
 
-        xController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);        frontRight.setDirection(driveConstants.getRightFrontMotorDirection());        double actualDY = currentPose.y - lastPose.y;
+     * 
 
-        yController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
+     * @param intendedLF Intended front-left power (-1 to 1)        lastHeading = pose.getHeading(AngleUnit.RADIANS);
 
-        headingController.setPIDF(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);        backLeft.setDirection(driveConstants.getLeftRearMotorDirection());        double actualDH = normalizeAngle(currentPose.heading - lastPose.heading);
+     * @param intendedRF Intended front-right power (-1 to 1)
 
+     * @param intendedLB Intended back-left power (-1 to 1)        lastTimeNanos = System.nanoTime();          PIDFCoefficients headingPIDF,    public Novad(Localizer localizer, MecanumDrivetrain drivetrain) {
 
+     * @param intendedRB Intended back-right power (-1 to 1)
 
-        // Calculate corrections        backRight.setDirection(driveConstants.getRightRearMotorDirection());
+     */    }
 
-        double corrX = clamp(-xController.calculate(discX), -maxPower, maxPower);
+    public void defenseWithMotors(double intendedLF, double intendedRF, 
 
-        double corrY = clamp(-yController.calculate(discY), -maxPower, maxPower);        double expectedVX = strafe * MAX_VELOCITY;
-
-        double corrH = clamp(-headingController.calculate(discH), -maxPower, maxPower);
-
-        DcMotor.ZeroPowerBehavior behavior = driveConstants.getUseBrakeMode()        double expectedVY = forward * MAX_VELOCITY;
-
-        // Combine driver input + correction
-
-        double finalStrafe = strafe + corrX;            ? DcMotor.ZeroPowerBehavior.BRAKE        double expectedVH = rotate * MAX_ANGULAR_VEL;
-
-        double finalForward = forward + corrY;
-
-        double finalRotate = rotate + corrH;            : DcMotor.ZeroPowerBehavior.FLOAT;
-
-
-
-        // Normalize and drive        if (NovadSetup.USE_FIELD_CENTRIC) {
-
-        driveMotors(finalStrafe, finalForward, finalRotate, currentHeading);
-
-        frontLeft.setZeroPowerBehavior(behavior);            double cos = Math.cos(currentPose.heading);
-
-        // Update state
-
-        lastX = currentX;        frontRight.setZeroPowerBehavior(behavior);            double sin = Math.sin(currentPose.heading);
-
-        lastY = currentY;
-
-        lastHeading = currentHeading;        backLeft.setZeroPowerBehavior(behavior);            double temp = expectedVX;
-
-    }
-
-        backRight.setZeroPowerBehavior(behavior);            expectedVX = temp * cos - expectedVY * sin;
-
-    /**
-
-     * LOCKDOWN - Become completely immovable            expectedVY = temp * sin + expectedVY * cos;
-
-     */
-
-    public void lockdown() {        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);        }
-
-        if (!inLockdown) {
-
-            pinpoint.update();        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-            Pose2D pose = pinpoint.getPosition();
-
-            lockX = pose.getX(DistanceUnit.INCH);        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);        double expectedDX = expectedVX * dt;
-
-            lockY = pose.getY(DistanceUnit.INCH);
-
-            lockHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);        double expectedDY = expectedVY * dt;
-
-            inLockdown = true;
-
-            xController.reset();        double expectedDH = expectedVH * dt;
-
-            yController.reset();
-
-            headingController.reset();        // Initialize PID controllers
-
-        }
-
-    }        xController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);        double discX = actualDX - expectedDX;
-
-
-
-    /**        yController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);        double discY = actualDY - expectedDY;
-
-     * UNLOCK - Exit lockdown mode
-
-     */        headingController = new PIDController(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);        double discH = normalizeAngle(actualDH - expectedDH);
-
-    public void unlock() {
+                                   double intendedLB, double intendedRB) {          DefenseSettings settings) {        this.localizer = localizer;
 
         if (inLockdown) {
 
-            inLockdown = false;
+            holdPosition();    /**
 
-            pinpoint.update();        // Initialize pose        if (Math.abs(discX) < 0.05) discX = 0;
+            return;
 
-            Pose2D pose = pinpoint.getPosition();
+        }     * DEFENSE MODE - Drive while resisting pushes                this.drivetrain = drivetrain;
 
-            lastX = pose.getX(DistanceUnit.INCH);        pinpoint.update();        if (Math.abs(discY) < 0.05) discY = 0;
 
-            lastY = pose.getY(DistanceUnit.INCH);
 
-            lastHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);        lastPose = getPoseFromPinpoint();        if (Math.abs(discH) < 0.01) discH = 0;
+        // Get current pose     * Call this every loop iteration (~20ms or faster)
 
-            lastTimeNanos = System.nanoTime();
+        pinpoint.update();
 
-        }        loopTimer.reset();
+        Pose2D pose = pinpoint.getPosition();     */        this.translationalPIDF = translationalPIDF;
+
+        double currentX = pose.getX(DistanceUnit.INCH);
+
+        double currentY = pose.getY(DistanceUnit.INCH);    public void defense(double strafe, double forward, double rotate) {
+
+        double currentHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);
+
+        if (inLockdown) {        this.headingPIDF = headingPIDF;        this.xController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D, NovadSetup.TRANS_F);
+
+        // Calculate delta time
+
+        long now = System.nanoTime();            holdPosition();
+
+        double dt = (now - lastTimeNanos) * 1e-9;
+
+        lastTimeNanos = now;            return;        this.settings = settings;        this.yController = new PIDController(NovadSetup.TRANS_P, NovadSetup.TRANS_I, NovadSetup.TRANS_D, NovadSetup.TRANS_F);
+
+        if (dt < 0.001) dt = 0.001;
+
+        }
+
+        // ACTUAL movement this frame
+
+        double actualDX = currentX - lastX;        this.headingController = new PIDController(NovadSetup.HEADING_P, NovadSetup.HEADING_I, NovadSetup.HEADING_D, NovadSetup.HEADING_F);
+
+        double actualDY = currentY - lastY;
+
+        double actualDH = normalizeAngle(currentHeading - lastHeading);        // Get current pose - single I2C read
+
+
+
+        // EXPECTED movement based on what motors were commanded        pinpoint.update();        // Initialize Pinpoint
+
+        // Inverse kinematics: motor powers -> robot velocity
+
+        double expStrafe = (lastCommandedLF - lastCommandedRF - lastCommandedLB + lastCommandedRB) / 4.0;        Pose2D pose = pinpoint.getPosition();
+
+        double expForward = (lastCommandedLF + lastCommandedRF + lastCommandedLB + lastCommandedRB) / 4.0;
+
+        double expRotate = (-lastCommandedLF + lastCommandedRF - lastCommandedLB + lastCommandedRB) / 4.0;        double currentX = pose.getX(DistanceUnit.INCH);        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, localizerConstants.getHardwareMapName());        localizer.update();
+
+
+
+        double expDX = expStrafe * MAX_VELOCITY * dt;        double currentY = pose.getY(DistanceUnit.INCH);
+
+        double expDY = expForward * MAX_VELOCITY * dt;
+
+        double expDH = expRotate * MAX_ANGULAR_VEL * dt;        double currentHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);                lastPose = localizer.getPose();
+
+
+
+        // Discrepancy = external force pushed us
+
+        double discX = actualDX - expDX;
+
+        double discY = actualDY - expDY;        // Calculate delta time        if (localizerConstants.isUsingCustomResolution()) {        loopTimer.reset();
+
+        double discH = normalizeAngle(actualDH - expDH);
+
+        long now = System.nanoTime();
+
+        // Deadzone to prevent jitter
+
+        if (Math.abs(discX) < POSITION_DEADZONE) discX = 0;        double dt = (now - lastTimeNanos) * 1e-9;            pinpoint.setEncoderResolution(localizerConstants.getCustomEncoderResolution());    }
+
+        if (Math.abs(discY) < POSITION_DEADZONE) discY = 0;
+
+        if (Math.abs(discH) < HEADING_DEADZONE) discH = 0;        lastTimeNanos = now;
+
+
+
+        // Update PID gains (for live Dashboard tuning)        if (dt < 0.001) dt = 0.001;        } else {
+
+        xController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
+
+        yController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
+
+        headingController.setPIDF(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);
+
+        // Actual movement this frame            pinpoint.setEncoderResolution(localizerConstants.getEncoderResolution());    /**
+
+        // Calculate corrections
+
+        double corrX = clamp(-xController.calculate(discX), -maxPower, maxPower);        double actualDX = currentX - lastX;
+
+        double corrY = clamp(-yController.calculate(discY), -maxPower, maxPower);
+
+        double corrH = clamp(-headingController.calculate(discH), -maxPower, maxPower);        double actualDY = currentY - lastY;        }     * DEFENSE MODE - Call in your loop.
+
+
+
+        // Convert corrections back to motor powers        double actualDH = normalizeAngle(currentHeading - lastHeading);
+
+        // Forward kinematics: robot velocity -> motor powers
+
+        double corrLF = corrY + corrX + corrH;             * Drives robot while resisting external pushes.
+
+        double corrRF = corrY - corrX - corrH;
+
+        double corrLB = corrY - corrX + corrH;        // Expected movement based on joystick
+
+        double corrRB = corrY + corrX - corrH;
+
+        double expVX = strafe * MAX_VELOCITY;        pinpoint.setEncoderDirections(     */
+
+        // Combine intended + correction
+
+        double finalLF = intendedLF + corrLF;        double expVY = forward * MAX_VELOCITY;
+
+        double finalRF = intendedRF + corrRF;
+
+        double finalLB = intendedLB + corrLB;        double expVH = rotate * MAX_ANGULAR_VEL;            localizerConstants.getForwardEncoderDirection(),    public void defense(double strafe, double forward, double rotate) {
+
+        double finalRB = intendedRB + corrRB;
+
+
+
+        // Clamp to valid range
+
+        finalLF = clamp(finalLF, -1.0, 1.0);        // Field-centric transform if enabled            localizerConstants.getStrafeEncoderDirection()        if (inLockdown) {
+
+        finalRF = clamp(finalRF, -1.0, 1.0);
+
+        finalLB = clamp(finalLB, -1.0, 1.0);        if (useFieldCentric) {
+
+        finalRB = clamp(finalRB, -1.0, 1.0);
+
+            double cos = Math.cos(currentHeading);        );            holdPosition();
+
+        // Apply to motors
+
+        frontLeft.setPower(finalLF);            double sin = Math.sin(currentHeading);
+
+        frontRight.setPower(finalRF);
+
+        backLeft.setPower(finalLB);            double temp = expVX;                    return;
+
+        backRight.setPower(finalRB);
+
+            expVX = temp * cos - expVY * sin;
+
+        // Store commanded values for next iteration
+
+        lastCommandedLF = finalLF;            expVY = temp * sin + expVY * cos;        pinpoint.resetPosAndIMU();        }
+
+        lastCommandedRF = finalRF;
+
+        lastCommandedLB = finalLB;        }
+
+        lastCommandedRB = finalRB;
+
+
+
+        // Update state
+
+        lastX = currentX;        double expDX = expVX * dt;
+
+        lastY = currentY;
+
+        lastHeading = currentHeading;        double expDY = expVY * dt;        // Initialize motors        localizer.update();
 
     }
 
-    }        double corrX = clamp(-xController.calculate(discX), -NovadSetup.MAX_POWER, NovadSetup.MAX_POWER);
+        double expDH = expVH * dt;
 
     /**
 
-     * Check if in lockdown mode        double corrY = clamp(-yController.calculate(discY), -NovadSetup.MAX_POWER, NovadSetup.MAX_POWER);
+     * LOCKDOWN MODE - Become completely immovable        frontLeft = hardwareMap.get(DcMotorEx.class, driveConstants.getLeftFrontMotorName());        Pose2d currentPose = localizer.getPose();
 
      */
 
-    public boolean isLocked() {    /**        double corrH = clamp(-headingController.calculate(discH), -NovadSetup.MAX_POWER, NovadSetup.MAX_POWER);
+    public void lockdown() {        // Discrepancy = external force
+
+        if (!inLockdown) {
+
+            pinpoint.update();        double discX = actualDX - expDX;        frontRight = hardwareMap.get(DcMotorEx.class, driveConstants.getRightFrontMotorName());        
+
+            Pose2D pose = pinpoint.getPosition();
+
+            lockX = pose.getX(DistanceUnit.INCH);        double discY = actualDY - expDY;
+
+            lockY = pose.getY(DistanceUnit.INCH);
+
+            lockHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);        double discH = normalizeAngle(actualDH - expDH);        backLeft = hardwareMap.get(DcMotorEx.class, driveConstants.getLeftRearMotorName());        double dt = getDeltaTime();
+
+            
+
+            xController.reset();
+
+            yController.reset();
+
+            headingController.reset();        // Deadzone to prevent jitter        backRight = hardwareMap.get(DcMotorEx.class, driveConstants.getRightRearMotorName());        updatePIDGains();
+
+            
+
+            inLockdown = true;        if (Math.abs(discX) < POSITION_DEADZONE) discX = 0;
+
+        }
+
+        holdPosition();        if (Math.abs(discY) < POSITION_DEADZONE) discY = 0;
+
+    }
+
+        if (Math.abs(discH) < HEADING_DEADZONE) discH = 0;
+
+    /**
+
+     * Exit lockdown mode        frontLeft.setDirection(driveConstants.getLeftFrontMotorDirection());        double actualDX = currentPose.x - lastPose.x;
+
+     */
+
+    public void unlock() {        // Update PID gains (for live Dashboard tuning)
+
+        inLockdown = false;
+
+        lastCommandedLF = 0;        xController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);        frontRight.setDirection(driveConstants.getRightFrontMotorDirection());        double actualDY = currentPose.y - lastPose.y;
+
+        lastCommandedRF = 0;
+
+        lastCommandedLB = 0;        yController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
+
+        lastCommandedRB = 0;
+
+    }        headingController.setPIDF(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);        backLeft.setDirection(driveConstants.getLeftRearMotorDirection());        double actualDH = normalizeAngle(currentPose.heading - lastPose.heading);
+
+
+
+    /**
+
+     * Check if in lockdown
+
+     */        // Calculate corrections        backRight.setDirection(driveConstants.getRightRearMotorDirection());
+
+    public boolean isLocked() {
+
+        return inLockdown;        double corrX = clamp(-xController.calculate(discX), -maxPower, maxPower);
+
+    }
+
+        double corrY = clamp(-yController.calculate(discY), -maxPower, maxPower);        double expectedVX = strafe * MAX_VELOCITY;
+
+    /**
+
+     * Get current robot pose        double corrH = clamp(-headingController.calculate(discH), -maxPower, maxPower);
+
+     */
+
+    public Pose2d getPose() {        DcMotor.ZeroPowerBehavior behavior = driveConstants.getUseBrakeMode()        double expectedVY = forward * MAX_VELOCITY;
+
+        double heading = getCurrentHeading();
+
+        return new Pose2d(lastX, lastY, heading);        // Combine driver input + correction
+
+    }
+
+        double finalStrafe = strafe + corrX;            ? DcMotor.ZeroPowerBehavior.BRAKE        double expectedVH = rotate * MAX_ANGULAR_VEL;
+
+    /**
+
+     * Reset heading to zero (field-centric calibration)        double finalForward = forward + corrY;
+
+     */
+
+    public void resetHeading() {        double finalRotate = rotate + corrH;            : DcMotor.ZeroPowerBehavior.FLOAT;
+
+        pinpoint.update();
+
+        headingOffset = pinpoint.getPosition().getHeading(AngleUnit.RADIANS);
+
+    }
+
+        // Normalize and drive        if (NovadSetup.USE_FIELD_CENTRIC) {
+
+    /**
+
+     * Reset position to (0, 0, 0)        driveMotors(finalStrafe, finalForward, finalRotate, currentHeading);
+
+     */
+
+    public void resetPosition() {        frontLeft.setZeroPowerBehavior(behavior);            double cos = Math.cos(currentPose.heading);
+
+        pinpoint.resetPosAndIMU();
+
+        headingOffset = 0;        // Update state
+
+        lastX = 0;
+
+        lastY = 0;        lastX = currentX;        frontRight.setZeroPowerBehavior(behavior);            double sin = Math.sin(currentPose.heading);
+
+        lastHeading = 0;
+
+    }        lastY = currentY;
+
+
+
+    /**        lastHeading = currentHeading;        backLeft.setZeroPowerBehavior(behavior);            double temp = expectedVX;
+
+     * Update PIDF coefficients (for live tuning)
+
+     */    }
+
+    public void setTranslationalPIDF(PIDFCoefficients pidf) {
+
+        this.translationalPIDF = pidf;        backRight.setZeroPowerBehavior(behavior);            expectedVX = temp * cos - expectedVY * sin;
+
+    }
+
+    /**
+
+    public void setHeadingPIDF(PIDFCoefficients pidf) {
+
+        this.headingPIDF = pidf;     * LOCKDOWN - Become completely immovable            expectedVY = temp * sin + expectedVY * cos;
+
+    }
+
+     */
+
+    /**
+
+     * Get loop timing for debugging    public void lockdown() {        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);        }
+
+     */
+
+    public double getLoopTimeMs() {        if (!inLockdown) {
+
+        return (System.nanoTime() - lastTimeNanos) / 1_000_000.0;
+
+    }            pinpoint.update();        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+
+
+    // ========================================================================            Pose2D pose = pinpoint.getPosition();
+
+    // INTERNAL METHODS
+
+    // ========================================================================            lockX = pose.getX(DistanceUnit.INCH);        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);        double expectedDX = expectedVX * dt;
+
+
+
+    private void holdPosition() {            lockY = pose.getY(DistanceUnit.INCH);
+
+        pinpoint.update();
+
+        Pose2D pose = pinpoint.getPosition();            lockHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);        double expectedDY = expectedVY * dt;
+
+        double currentX = pose.getX(DistanceUnit.INCH);
+
+        double currentY = pose.getY(DistanceUnit.INCH);            inLockdown = true;
+
+        double currentHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);
+
+            xController.reset();        double expectedDH = expectedVH * dt;
+
+        double errorX = lockX - currentX;
+
+        double errorY = lockY - currentY;            yController.reset();
+
+        double errorH = normalizeAngle(lockHeading - currentHeading);
+
+            headingController.reset();        // Initialize PID controllers
+
+        xController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
+
+        yController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);        }
+
+        headingController.setPIDF(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);
+
+    }        xController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);        double discX = actualDX - expectedDX;
+
+        double corrX = clamp(xController.calculate(-errorX), -1.0, 1.0);
+
+        double corrY = clamp(yController.calculate(-errorY), -1.0, 1.0);
+
+        double corrH = clamp(headingController.calculate(-errorH), -1.0, 1.0);
+
+    /**        yController = new PIDController(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);        double discY = actualDY - expectedDY;
+
+        double lf = corrY + corrX + corrH;
+
+        double rf = corrY - corrX - corrH;     * UNLOCK - Exit lockdown mode
+
+        double lb = corrY - corrX + corrH;
+
+        double rb = corrY + corrX - corrH;     */        headingController = new PIDController(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);        double discH = normalizeAngle(actualDH - expectedDH);
+
+
+
+        double max = Math.max(Math.abs(lf), Math.max(Math.abs(rf), Math.max(Math.abs(lb), Math.abs(rb))));    public void unlock() {
+
+        if (max > 1.0) {
+
+            lf /= max;        if (inLockdown) {
+
+            rf /= max;
+
+            lb /= max;            inLockdown = false;
+
+            rb /= max;
+
+        }            pinpoint.update();        // Initialize pose        if (Math.abs(discX) < 0.05) discX = 0;
+
+
+
+        frontLeft.setPower(lf);            Pose2D pose = pinpoint.getPosition();
+
+        frontRight.setPower(rf);
+
+        backLeft.setPower(lb);            lastX = pose.getX(DistanceUnit.INCH);        pinpoint.update();        if (Math.abs(discY) < 0.05) discY = 0;
+
+        backRight.setPower(rb);
+
+            lastY = pose.getY(DistanceUnit.INCH);
+
+        lastX = currentX;
+
+        lastY = currentY;            lastHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);        lastPose = getPoseFromPinpoint();        if (Math.abs(discH) < 0.01) discH = 0;
+
+        lastHeading = currentHeading;
+
+    }            lastTimeNanos = System.nanoTime();
+
+
+
+    private double getCurrentHeading() {        }        loopTimer.reset();
+
+        return normalizeAngle(lastHeading);
+
+    }    }
+
+
+
+    private static double normalizeAngle(double angle) {    }        double corrX = clamp(-xController.calculate(discX), -NovadSetup.MAX_POWER, NovadSetup.MAX_POWER);
+
+        while (angle > Math.PI) angle -= 2 * Math.PI;
+
+        while (angle < -Math.PI) angle += 2 * Math.PI;    /**
+
+        return angle;
+
+    }     * Check if in lockdown mode        double corrY = clamp(-yController.calculate(discY), -NovadSetup.MAX_POWER, NovadSetup.MAX_POWER);
+
+
+
+    private static double clamp(double value, double min, double max) {     */
+
+        return Math.max(min, Math.min(max, value));
+
+    }    public boolean isLocked() {    /**        double corrH = clamp(-headingController.calculate(discH), -NovadSetup.MAX_POWER, NovadSetup.MAX_POWER);
+
+}
 
         return inLockdown;
 
