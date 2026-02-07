@@ -22,12 +22,9 @@ public class NovadTeleOp extends LinearOpMode {
         Novad novad = Constants.createNovad(hardwareMap);
         
         telemetry.addLine("Novad v" + Novad.VERSION + " Ready");
-        telemetry.addLine("A = Lockdown | B = Unlock | Y = Reset Heading");
+        telemetry.addLine("A = Lockdown | B = Unlock");
         telemetry.update();
         waitForStart();
-        
-        // Reset heading at match start (for field-centric)
-        novad.resetHeading();
 
         // ══════════════════════════════════════════════════════════════
         // LOOP
@@ -107,11 +104,6 @@ public class NovadTeleOp extends LinearOpMode {
             }
             if (gamepad1.b) {
                 novad.unlock();
-            }
-            
-            // Reset heading (field-centric calibration)
-            if (gamepad1.y) {
-                novad.resetHeading();
             }
             
             // ──────────────────────────────────────────────────────────
