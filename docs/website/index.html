@@ -132,6 +132,19 @@ footer{background:var(--crimson);padding:2rem;text-align:center;color:var(--mute
 <li><strong>FTC SDK 9.0+</strong></li>
 </ul>
 </div>
+
+<div class="box tip">
+<h4>✅ Already Using Pedro Pathing?</h4>
+<p><strong>Copy your PIDF values directly!</strong> Novad uses the same PIDF controller structure as Pedro Pathing. Your tuned values will work:</p>
+<table>
+<tr><th>Pedro Pathing</th><th>Novad</th></tr>
+<tr><td><code>translationalPIDFCoefficients</code></td><td><code>translationalPIDF</code> ✅ Same values</td></tr>
+<tr><td><code>headingPIDFCoefficients</code></td><td><code>headingPIDF</code> ✅ Same values</td></tr>
+<tr><td>Motor names & directions</td><td>✅ Same format</td></tr>
+<tr><td>Pinpoint config</td><td>✅ Same format</td></tr>
+</table>
+<p style="margin-top:1rem;color:var(--txt)"><strong>Example:</strong> If Pedro uses <code>PIDFCoefficients(0.1, 0, 0.01, 0)</code>, use the same in Novad!</p>
+</div>
 </section>
 
 <div class="divider">• • •</div>
