@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novad - Programming Slide</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #5C0000 0%, #8B0000 50%, #3D0000 100%);
+    min-height: 100vh;
+    padding: 30px;
+    color: white;
+}
+
+.slide {
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: 800px;
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #FFD700;
+    margin-bottom: 25px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    border-bottom: 3px solid #FFD700;
+    padding-bottom: 10px;
+}
+
+.main-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+/* Left side - Architecture */
+.architecture {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Novad Header Box */
+.novad-header {
+    background: linear-gradient(135deg, #B8860B, #FFD700);
+    color: #000;
+    padding: 15px 30px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.version {
+    font-size: 0.9rem;
+    font-weight: normal;
+    opacity: 0.8;
+}
+
+/* Flow boxes */
+.flow-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.flow-row {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.flow-box {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #FFD700;
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-align: center;
+    flex: 1;
+    max-width: 200px;
+}
+
+.flow-box.orange {
+    background: linear-gradient(135deg, #D2691E, #FF8C00);
+    border: none;
+    color: white;
+}
+
+.flow-box.gold {
+    background: linear-gradient(135deg, #B8860B, #DAA520);
+    border: none;
+    color: #000;
+}
+
+.flow-box h4 {
+    font-size: 0.95rem;
+    margin-bottom: 5px;
+}
+
+.flow-box p {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* Arrow */
+.arrow {
+    text-align: center;
+    font-size: 1.5rem;
+    color: #FFD700;
+}
+
+/* Mode cards */
+.mode-cards {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.mode-card {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    border-left: 4px solid #FFD700;
+}
+
+.mode-card.defense { border-left-color: #4CAF50; }
+.mode-card.lockdown { border-left-color: #FF5722; }
+
+.mode-card h4 {
+    color: #FFD700;
+    font-size: 1rem;
+    margin-bottom: 8px;
+}
+
+.mode-card p {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.mode-card code {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Consolas', monospace;
+    color: #FFD700;
+}
+
+/* Right side - Controller & Features */
+.right-side {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Controller section */
+.controller-section {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 280px;
+}
+
+.controller-svg {
+    width: 280px;
+    height: 180px;
+}
+
+.controller-label {
+    position: absolute;
+    background: rgba(0,0,0,0.7);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    border: 1px solid #FFD700;
+}
+
+.controller-label.left-stick { top: 120px; left: 20px; }
+.controller-label.right-stick { top: 120px; right: 20px; }
+.controller-label.bumpers { top: 20px; right: 50%; transform: translateX(50%); }
+.controller-label.dpad { bottom: 30px; left: 60px; }
+.controller-label.buttons { bottom: 30px; right: 40px; }
+
+.controller-label span {
+    color: #FFD700;
+    font-weight: bold;
+}
+
+/* Features box */
+.features-box {
+    background: linear-gradient(135deg, #D2691E, #FF8C00);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.features-box h4 {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    color: white;
+}
+
+.features-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.features-box li {
+    font-size: 0.9rem;
+    padding-left: 20px;
+    position: relative;
+}
+
+.features-box li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #FFD700;
+    font-weight: bold;
+}
+
+/* API Quick Reference */
+.api-box {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #FFD700;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.api-box h4 {
+    color: #FFD700;
+    margin-bottom: 10px;
+}
+
+.api-method {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.85rem;
+}
+
+.api-method:last-child { border-bottom: none; }
+
+.api-method code {
+    font-family: 'Consolas', monospace;
+    color: #98FB98;
+}
+
+.api-method .desc {
+    opacity: 0.8;
+}
+
+/* Bottom stats */
+.stats-row {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.stat-box {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid rgba(255,215,0,0.3);
+}
+
+.stat-box .number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #FFD700;
+}
+
+.stat-box .label {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+</style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="title">Programming | Novad Defense System</div>
+    
+    <div class="main-container">
+        <!-- Left Side - Architecture -->
+        <div class="architecture">
+            <div class="novad-header">
+                NOVAD <span class="version">v2.2.0</span>
+            </div>
+            
+            <div class="arrow">↓</div>
+            
+            <div class="flow-section">
+                <div class="flow-row">
+                    <div class="flow-box orange">
+                        <h4>Pinpoint Odometry</h4>
+                        <p>Reads robot position every 5ms</p>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="flow-row">
+                    <div class="flow-box">
+                        <h4>Expected Position</h4>
+                        <p>Based on motor commands</p>
+                    </div>
+                    <div class="flow-box">
+                        <h4>Actual Position</h4>
+                        <p>From odometry</p>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="flow-row">
+                    <div class="flow-box gold">
+                        <h4>Compare & Calculate</h4>
+                        <p>Discrepancy = External Push</p>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="flow-row">
+                    <div class="flow-box orange">
+                        <h4>PIDF Correction</h4>
+                        <p>Counter-force applied to motors</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mode-cards">
+                <div class="mode-card defense">
+                    <h4>🛡️ Defense Mode</h4>
+                    <p>Drive normally while resisting pushes</p>
+                    <code>novad.defense()</code>
+                </div>
+                <div class="mode-card lockdown">
+                    <h4>🔒 Lockdown Mode</h4>
+                    <p>Immovable. Driver input ignored.</p>
+                    <code>novad.lockdown()</code>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side - Controller & Features -->
+        <div class="right-side">
+            <!-- Controller Diagram -->
+            <div class="controller-section">
+                <svg class="controller-svg" viewBox="0 0 280 180">
+                    <!-- Controller body -->
+                    <ellipse cx="140" cy="90" rx="130" ry="70" fill="#1a1a1a" stroke="#333" stroke-width="2"/>
+                    <!-- Grips -->
+                    <ellipse cx="50" cy="140" rx="35" ry="45" fill="#1a1a1a" stroke="#333" stroke-width="2"/>
+                    <ellipse cx="230" cy="140" rx="35" ry="45" fill="#1a1a1a" stroke="#333" stroke-width="2"/>
+                    <!-- Left stick -->
+                    <circle cx="80" cy="100" r="22" fill="#2a2a2a" stroke="#444"/>
+                    <circle cx="80" cy="100" r="15" fill="#333"/>
+                    <!-- Right stick -->
+                    <circle cx="180" cy="120" r="22" fill="#2a2a2a" stroke="#444"/>
+                    <circle cx="180" cy="120" r="15" fill="#333"/>
+                    <!-- D-pad -->
+                    <rect x="95" y="105" width="30" height="10" rx="2" fill="#333"/>
+                    <rect x="105" y="95" width="10" height="30" rx="2" fill="#333"/>
+                    <!-- Buttons -->
+                    <circle cx="210" cy="80" r="8" fill="#4a4a4a"/>
+                    <circle cx="230" cy="95" r="8" fill="#4a4a4a"/>
+                    <circle cx="210" cy="110" r="8" fill="#4a4a4a"/>
+                    <circle cx="190" cy="95" r="8" fill="#4a4a4a"/>
+                    <!-- Bumpers -->
+                    <rect x="40" y="30" width="60" height="12" rx="5" fill="#333"/>
+                    <rect x="180" y="30" width="60" height="12" rx="5" fill="#333"/>
+                    <!-- Touchpad -->
+                    <rect x="110" y="55" width="60" height="25" rx="3" fill="#2a2a2a"/>
+                </svg>
+                
+                <div class="controller-label left-stick">
+                    <span>Left Stick</span><br>Strafe + Forward
+                </div>
+                <div class="controller-label right-stick">
+                    <span>Right Stick</span><br>Rotate
+                </div>
+                <div class="controller-label buttons">
+                    <span>A</span> Lockdown<br>
+                    <span>B</span> Unlock
+                </div>
+            </div>
+            
+            <!-- Features -->
+            <div class="features-box">
+                <h4>Key Features</h4>
+                <ul>
+                    <li><strong>&lt;20ms</strong> reaction time (~5ms typical)</li>
+                    <li>Handles <strong>button-triggered</strong> movements</li>
+                    <li>Pedro Pathing-style configuration</li>
+                    <li>Live PIDF tuning via FTC Dashboard</li>
+                    <li>Field-centric option</li>
+                    <li>GoBilda Pinpoint integration</li>
+                </ul>
+            </div>
+            
+            <!-- API Reference -->
+            <div class="api-box">
+                <h4>API Methods</h4>
+                <div class="api-method">
+                    <code>defense(gamepad)</code>
+                    <span class="desc">Simple driving</span>
+                </div>
+                <div class="api-method">
+                    <code>defense(s, f, r)</code>
+                    <span class="desc">Custom joystick</span>
+                </div>
+                <div class="api-method">
+                    <code>defenseWithMotors()</code>
+                    <span class="desc">Button macros</span>
+                </div>
+                <div class="api-method">
+                    <code>lockdown()</code>
+                    <span class="desc">Immovable</span>
+                </div>
+                <div class="api-method">
+                    <code>unlock()</code>
+                    <span class="desc">Exit lockdown</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Stats -->
+    <div class="stats-row">
+        <div class="stat-box">
+            <div class="number">&lt;5ms</div>
+            <div class="label">Loop Time</div>
+        </div>
+        <div class="stat-box">
+            <div class="number">2</div>
+            <div class="label">Defense Modes</div>
+        </div>
+        <div class="stat-box">
+            <div class="number">3</div>
+            <div class="label">API Methods</div>
+        </div>
+        <div class="stat-box">
+            <div class="number">0</div>
+            <div class="label">Dependencies</div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

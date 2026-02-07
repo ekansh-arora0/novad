@@ -1,11 +1,12 @@
 package org.firstinspires.ftc.teamcode.novad;
 
-import com.acmerobotics.dashboard.config.Config;
+// FTC Dashboard (uncomment if available)
+// import com.acmerobotics.dashboard.config.Config;
 
 /**
  * PIDF Coefficients for controllers
  */
-@Config
+// @Config  // Uncomment if FTC Dashboard is available
 public class PIDFCoefficients {
     public double p;
     public double i;

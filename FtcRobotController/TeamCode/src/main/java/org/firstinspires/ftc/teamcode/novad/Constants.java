@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.novad;
 
-import com.acmerobotics.dashboard.config.Config;
+// FTC Dashboard (uncomment if maven.brott.dev is reachable)
+// import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -8,10 +9,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 /**
  * Novad Constants - Configure your robot here
  * 
- * Copy your values from Pedro Pathing Constants if you already have them tuned.
- * All @Config values can be tuned live in FTC Dashboard.
+ * TUNING: Edit the PIDF values below and re-deploy to test.
+ * If FTC Dashboard works, uncomment @Config for live tuning.
  */
-@Config
+// @Config  // Uncomment if FTC Dashboard is available
 public class Constants {
 
     // ═══════════════════════════════════════════════════════════════════════════
