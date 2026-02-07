@@ -19,7 +19,7 @@ public class Constants {
     //                           PIDF COEFFICIENTS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    public static PIDFCoefficients translationalPIDF = new PIDFCoefficients(0.065, 0, 0.033, 0.001);
+    public static PIDFCoefficients translationalPIDF = new PIDFCoefficients(0.075, 0, 0.033, 0.001);
     public static PIDFCoefficients headingPIDF = new PIDFCoefficients(1, 0, 0, 0.01);
 
     // ═══════════════════════════════════════════════════════════════════════════

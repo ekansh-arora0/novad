@@ -24,12 +24,17 @@ public class Novad {
     private boolean inLockdown = false;
     private double headingOffset = 0;
     private long lastTimeNanos;
-    private double lastCommandedLF = 0, lastCommandedRF = 0, lastCommandedLB = 0, lastCommandedRB = 0;
+    
+    // Track intended motor powers BEFORE correction (what driver commanded)
+    private double intendedLF = 0, intendedRF = 0, intendedLB = 0, intendedRB = 0;
+    
+    // Track expected position based on intended commands
+    private double expectedX, expectedY, expectedHeading;
 
-    private static final double MAX_VELOCITY = 60.0;
-    private static final double MAX_ANGULAR_VEL = Math.PI;
-    private static final double POSITION_DEADZONE = 0.02;
-    private static final double HEADING_DEADZONE = 0.005;
+    private static final double MAX_VELOCITY = 60.0;  // inches per second at full power
+    private static final double MAX_ANGULAR_VEL = Math.PI;  // radians per second at full power
+    private static final double POSITION_DEADZONE = 0.15;  // ignore small discrepancies (inches)
+    private static final double HEADING_DEADZONE = 0.02;   // ignore small heading discrepancies (radians)
 
     Novad(HardwareMap hardwareMap, MecanumConstants drive, PinpointConstants localizer,
           PIDFCoefficients translationalPIDF, PIDFCoefficients headingPIDF, DefenseSettings settings) {
@@ -77,6 +82,9 @@ public class Novad {
         lastX = pose.getX(DistanceUnit.INCH);
         lastY = pose.getY(DistanceUnit.INCH);
         lastHeading = pose.getHeading(AngleUnit.RADIANS);
+        expectedX = lastX;
+        expectedY = lastY;
+        expectedHeading = lastHeading;
         lastTimeNanos = System.nanoTime();
     }
 
@@ -114,6 +122,12 @@ public class Novad {
     public void defenseWithMotors(double intendedLF, double intendedRF, double intendedLB, double intendedRB) {
         if (inLockdown) { holdPosition(); return; }
 
+        // Store intended powers (what the driver wants, BEFORE correction)
+        this.intendedLF = intendedLF;
+        this.intendedRF = intendedRF;
+        this.intendedLB = intendedLB;
+        this.intendedRB = intendedRB;
+
         pinpoint.update();
         Pose2D pose = pinpoint.getPosition();
         double currentX = pose.getX(DistanceUnit.INCH);
@@ -124,55 +138,69 @@ public class Novad {
         double dt = (now - lastTimeNanos) * 1e-9;
         lastTimeNanos = now;
         if (dt < 0.001) dt = 0.001;
+        if (dt > 0.1) dt = 0.1;  // Cap dt to prevent huge jumps
 
-        double actualDX = currentX - lastX;
-        double actualDY = currentY - lastY;
-        double actualDH = normalizeAngle(currentHeading - lastHeading);
+        // Calculate expected movement from INTENDED commands (not corrected ones!)
+        // This is robot-relative movement
+        double robotStrafe = (intendedLF - intendedRF - intendedLB + intendedRB) / 4.0;
+        double robotForward = (intendedLF + intendedRF + intendedLB + intendedRB) / 4.0;
+        double robotRotate = (-intendedLF + intendedRF - intendedLB + intendedRB) / 4.0;
 
-        double expStrafe = (lastCommandedLF - lastCommandedRF - lastCommandedLB + lastCommandedRB) / 4.0;
-        double expForward = (lastCommandedLF + lastCommandedRF + lastCommandedLB + lastCommandedRB) / 4.0;
-        double expRotate = (-lastCommandedLF + lastCommandedRF - lastCommandedLB + lastCommandedRB) / 4.0;
+        // Convert robot-relative to field-relative using current heading
+        double cos = Math.cos(currentHeading);
+        double sin = Math.sin(currentHeading);
+        double fieldDX = (robotStrafe * cos - robotForward * sin) * MAX_VELOCITY * dt;
+        double fieldDY = (robotStrafe * sin + robotForward * cos) * MAX_VELOCITY * dt;
+        double fieldDH = robotRotate * MAX_ANGULAR_VEL * dt;
 
-        double expDX = expStrafe * MAX_VELOCITY * dt;
-        double expDY = expForward * MAX_VELOCITY * dt;
-        double expDH = expRotate * MAX_ANGULAR_VEL * dt;
+        // Update expected position based on driver intent
+        expectedX += fieldDX;
+        expectedY += fieldDY;
+        expectedHeading = normalizeAngle(expectedHeading + fieldDH);
 
-        double discX = actualDX - expDX;
-        double discY = actualDY - expDY;
-        double discH = normalizeAngle(actualDH - expDH);
+        // Calculate error: where we should be vs where we are
+        double errorX = expectedX - currentX;
+        double errorY = expectedY - currentY;
+        double errorH = normalizeAngle(expectedHeading - currentHeading);
 
-        if (Math.abs(discX) < POSITION_DEADZONE) discX = 0;
-        if (Math.abs(discY) < POSITION_DEADZONE) discY = 0;
-        if (Math.abs(discH) < HEADING_DEADZONE) discH = 0;
+        // Apply deadzone - don't correct tiny discrepancies (prevents jitter!)
+        if (Math.abs(errorX) < POSITION_DEADZONE) { errorX = 0; expectedX = currentX; }
+        if (Math.abs(errorY) < POSITION_DEADZONE) { errorY = 0; expectedY = currentY; }
+        if (Math.abs(errorH) < HEADING_DEADZONE) { errorH = 0; expectedHeading = currentHeading; }
 
+        // Update PIDF coefficients
         xController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
         yController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
         headingController.setPIDF(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);
 
-        double corrX = clamp(-xController.calculate(discX), -maxPower, maxPower);
-        double corrY = clamp(-yController.calculate(discY), -maxPower, maxPower);
-        double corrH = clamp(-headingController.calculate(discH), -maxPower, maxPower);
+        // Calculate correction in field frame
+        double corrFieldX = clamp(xController.calculate(-errorX), -maxPower, maxPower);
+        double corrFieldY = clamp(yController.calculate(-errorY), -maxPower, maxPower);
+        double corrH = clamp(headingController.calculate(-errorH), -maxPower, maxPower);
 
-        double corrLF = corrY + corrX + corrH;
-        double corrRF = corrY - corrX - corrH;
-        double corrLB = corrY - corrX + corrH;
-        double corrRB = corrY + corrX - corrH;
+        // Convert field-relative correction back to robot-relative
+        double corrRobotStrafe = corrFieldX * cos + corrFieldY * sin;
+        double corrRobotForward = -corrFieldX * sin + corrFieldY * cos;
 
+        // Apply mecanum kinematics for correction
+        double corrLF = corrRobotForward + corrRobotStrafe + corrH;
+        double corrRF = corrRobotForward - corrRobotStrafe - corrH;
+        double corrLB = corrRobotForward - corrRobotStrafe + corrH;
+        double corrRB = corrRobotForward + corrRobotStrafe - corrH;
+
+        // Combine intended power with correction
         double finalLF = clamp(intendedLF + corrLF, -1.0, 1.0);
         double finalRF = clamp(intendedRF + corrRF, -1.0, 1.0);
         double finalLB = clamp(intendedLB + corrLB, -1.0, 1.0);
         double finalRB = clamp(intendedRB + corrRB, -1.0, 1.0);
 
+        // Apply to motors
         frontLeft.setPower(finalLF);
         frontRight.setPower(finalRF);
         backLeft.setPower(finalLB);
         backRight.setPower(finalRB);
 
-        lastCommandedLF = finalLF;
-        lastCommandedRF = finalRF;
-        lastCommandedLB = finalLB;
-        lastCommandedRB = finalRB;
-
+        // Update tracking (position only, NOT the intended powers!)
         lastX = currentX;
         lastY = currentY;
         lastHeading = currentHeading;
@@ -195,7 +223,16 @@ public class Novad {
 
     public void unlock() {
         inLockdown = false;
-        lastCommandedLF = lastCommandedRF = lastCommandedLB = lastCommandedRB = 0;
+        intendedLF = intendedRF = intendedLB = intendedRB = 0;
+        // Sync expected position to actual on unlock
+        pinpoint.update();
+        Pose2D pose = pinpoint.getPosition();
+        expectedX = pose.getX(DistanceUnit.INCH);
+        expectedY = pose.getY(DistanceUnit.INCH);
+        expectedHeading = normalizeAngle(pose.getHeading(AngleUnit.RADIANS) - headingOffset);
+        xController.reset();
+        yController.reset();
+        headingController.reset();
     }
 
     public boolean isLocked() { return inLockdown; }
