@@ -142,15 +142,20 @@ public class Novad {
 
         // Calculate expected movement from INTENDED commands (not corrected ones!)
         // This is robot-relative movement
-        double robotStrafe = (intendedLF - intendedRF - intendedLB + intendedRB) / 4.0;
+        // Inverse kinematics: motor powers → strafe/forward/rotate
+        // Given: LF = F+S+R, RF = F-S-R, LB = F-S+R, RB = F+S-R
         double robotForward = (intendedLF + intendedRF + intendedLB + intendedRB) / 4.0;
-        double robotRotate = (-intendedLF + intendedRF - intendedLB + intendedRB) / 4.0;
+        double robotStrafe = (intendedLF - intendedRF - intendedLB + intendedRB) / 4.0;
+        double robotRotate = (intendedLF - intendedRF + intendedLB - intendedRB) / 4.0;
 
         // Convert robot-relative to field-relative using current heading
+        // Robot X (strafe) = right, Robot Y (forward) = front
+        // Field X = right on field, Field Y = forward on field
+        // Rotation matrix: [cos -sin; sin cos] for robot->field
         double cos = Math.cos(currentHeading);
         double sin = Math.sin(currentHeading);
-        double fieldDX = (robotStrafe * cos - robotForward * sin) * MAX_VELOCITY * dt;
-        double fieldDY = (robotStrafe * sin + robotForward * cos) * MAX_VELOCITY * dt;
+        double fieldDX = (robotForward * sin + robotStrafe * cos) * MAX_VELOCITY * dt;
+        double fieldDY = (robotForward * cos - robotStrafe * sin) * MAX_VELOCITY * dt;
         double fieldDH = robotRotate * MAX_ANGULAR_VEL * dt;
 
         // Update expected position based on driver intent
@@ -180,8 +185,9 @@ public class Novad {
         double corrH = clamp(headingController.calculate(errorH), -maxPower, maxPower);
 
         // Convert field-relative correction back to robot-relative
-        double corrRobotStrafe = corrFieldX * cos + corrFieldY * sin;
-        double corrRobotForward = -corrFieldX * sin + corrFieldY * cos;
+        // Inverse rotation: [cos sin; -sin cos] for field->robot
+        double corrRobotStrafe = corrFieldX * cos - corrFieldY * sin;
+        double corrRobotForward = corrFieldX * sin + corrFieldY * cos;
 
         // Apply mecanum kinematics for correction
         double corrLF = corrRobotForward + corrRobotStrafe + corrH;
@@ -274,10 +280,11 @@ public class Novad {
         double corrH = clamp(headingController.calculate(errorH), -1.0, 1.0);
 
         // Convert field-relative corrections to robot-relative
+        // Inverse rotation: [cos sin; -sin cos] for field->robot
         double cos = Math.cos(currentHeading);
         double sin = Math.sin(currentHeading);
-        double corrRobotStrafe = corrX * cos + corrY * sin;
-        double corrRobotForward = -corrX * sin + corrY * cos;
+        double corrRobotStrafe = corrX * cos - corrY * sin;
+        double corrRobotForward = corrX * sin + corrY * cos;
 
         double lf = corrRobotForward + corrRobotStrafe + corrH;
         double rf = corrRobotForward - corrRobotStrafe - corrH;
