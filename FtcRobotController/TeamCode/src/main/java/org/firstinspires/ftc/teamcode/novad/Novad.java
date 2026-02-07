@@ -174,9 +174,10 @@ public class Novad {
         headingController.setPIDF(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);
 
         // Calculate correction in field frame
-        double corrFieldX = clamp(xController.calculate(-errorX), -maxPower, maxPower);
-        double corrFieldY = clamp(yController.calculate(-errorY), -maxPower, maxPower);
-        double corrH = clamp(headingController.calculate(-errorH), -maxPower, maxPower);
+        // Error is positive when we're behind where we should be, so correction should be positive
+        double corrFieldX = clamp(xController.calculate(errorX), -maxPower, maxPower);
+        double corrFieldY = clamp(yController.calculate(errorY), -maxPower, maxPower);
+        double corrH = clamp(headingController.calculate(errorH), -maxPower, maxPower);
 
         // Convert field-relative correction back to robot-relative
         double corrRobotStrafe = corrFieldX * cos + corrFieldY * sin;
@@ -267,14 +268,21 @@ public class Novad {
         yController.setPIDF(translationalPIDF.p, translationalPIDF.i, translationalPIDF.d, translationalPIDF.f);
         headingController.setPIDF(headingPIDF.p, headingPIDF.i, headingPIDF.d, headingPIDF.f);
 
-        double corrX = clamp(xController.calculate(-errorX), -1.0, 1.0);
-        double corrY = clamp(yController.calculate(-errorY), -1.0, 1.0);
-        double corrH = clamp(headingController.calculate(-errorH), -1.0, 1.0);
+        // Error is positive when we're behind lock position, correction should push us there
+        double corrX = clamp(xController.calculate(errorX), -1.0, 1.0);
+        double corrY = clamp(yController.calculate(errorY), -1.0, 1.0);
+        double corrH = clamp(headingController.calculate(errorH), -1.0, 1.0);
 
-        double lf = corrY + corrX + corrH;
-        double rf = corrY - corrX - corrH;
-        double lb = corrY - corrX + corrH;
-        double rb = corrY + corrX - corrH;
+        // Convert field-relative corrections to robot-relative
+        double cos = Math.cos(currentHeading);
+        double sin = Math.sin(currentHeading);
+        double corrRobotStrafe = corrX * cos + corrY * sin;
+        double corrRobotForward = -corrX * sin + corrY * cos;
+
+        double lf = corrRobotForward + corrRobotStrafe + corrH;
+        double rf = corrRobotForward - corrRobotStrafe - corrH;
+        double lb = corrRobotForward - corrRobotStrafe + corrH;
+        double rb = corrRobotForward + corrRobotStrafe - corrH;
 
         double max = Math.max(Math.abs(lf), Math.max(Math.abs(rf), Math.max(Math.abs(lb), Math.abs(rb))));
         if (max > 1.0) { lf /= max; rf /= max; lb /= max; rb /= max; }

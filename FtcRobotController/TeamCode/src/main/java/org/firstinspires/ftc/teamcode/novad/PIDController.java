@@ -1,20 +1,25 @@
 package org.firstinspires.ftc.teamcode.novad;
 
 /**
- * PIDF Controller
+ * PIDF Controller with filtered derivative (matches Pedro Pathing style)
  * 
  * P = Proportional: Main correction force, proportional to error
  * I = Integral: Accumulates error over time, fixes steady-state drift
- * D = Derivative: Dampens oscillation by reacting to rate of change
- * F = Feedforward: Constant offset to overcome static friction (motor jitter)
+ * D = Derivative: Dampens oscillation, filtered to reduce noise
+ * F = Feedforward: Scales with error to help with steady-state
  */
 public class PIDController {
     private double kP, kI, kD, kF;
     
     private double integral = 0;
     private double lastError = 0;
+    private double filteredDerivative = 0;  // Low-pass filtered derivative
     private long lastTime = 0;
     private boolean firstRun = true;
+    
+    // Low-pass filter coefficient for derivative (0 = no filter, 1 = full filter)
+    // Higher = smoother but slower response
+    private static final double DERIVATIVE_FILTER = 0.8;
 
     public PIDController(double kP, double kI, double kD) {
         this(kP, kI, kD, 0);
@@ -54,7 +59,7 @@ public class PIDController {
     }
 
     /**
-     * Calculate PIDF output
+     * Calculate PIDF output - matches Pedro Pathing formula
      * 
      * @param error Current error (target - actual)
      * @return Correction value
@@ -66,11 +71,13 @@ public class PIDController {
             lastTime = currentTime;
             lastError = error;
             firstRun = false;
-            return kP * error + Math.signum(error) * kF;
+            // First run: just P term, no derivative or integral yet
+            return kP * error;
         }
 
         double dt = (currentTime - lastTime) / 1e9; // Convert to seconds
         if (dt <= 0) dt = 0.001; // Prevent division by zero
+        if (dt > 0.1) dt = 0.1; // Cap to prevent huge jumps
 
         // Proportional term
         double p = kP * error;
@@ -81,13 +88,15 @@ public class PIDController {
         integral = clamp(integral, -maxIntegral, maxIntegral);
         double i = kI * integral;
 
-        // Derivative term
-        double derivative = (error - lastError) / dt;
-        double d = kD * derivative;
+        // Derivative term with low-pass filter (reduces noise-induced jitter)
+        // This matches Pedro Pathing's FilteredPIDFController approach
+        double rawDerivative = (error - lastError) / dt;
+        filteredDerivative = DERIVATIVE_FILTER * filteredDerivative + (1 - DERIVATIVE_FILTER) * rawDerivative;
+        double d = kD * filteredDerivative;
 
-        // Feedforward term (overcomes static friction)
-        // Applied in the direction of error, helps with motor jitter
-        double f = Math.signum(error) * kF;
+        // Feedforward term - proportional to error (Pedro style)
+        // This scales smoothly rather than jumping with signum
+        double f = kF * error;
 
         // Update state
         lastError = error;
@@ -103,6 +112,7 @@ public class PIDController {
     public void reset() {
         integral = 0;
         lastError = 0;
+        filteredDerivative = 0;
         firstRun = true;
     }
 
